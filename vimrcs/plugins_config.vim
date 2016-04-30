@@ -148,3 +148,66 @@ nnoremap <silent> <leader>l :call SyntasticCheckCoffeescript()<cr>
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 let g:gitgutter_enabled=0
 nnoremap <silent> <leader>d :GitGutterToggle<cr>
+
+autocmd VimEnter * NERDTree
+map  :silent! NERDTreeToggle
+let NERDTreeIgnore = ['\.o$','\.d$']
+
+""""""""""""""""""""""""""""""
+" Tag list (ctags)
+""""""""""""""""""""""""""""""""
+let Tlist_Ctags_Cmd = '/usr/bin/ctags'
+let Tlist_Show_One_File = 1            "不同时显示多个文件的tag，只显示当前文件的
+let Tlist_Exit_OnlyWindow = 1          "如果taglist窗口是最后一个窗口，则退出vim
+let Tlist_Use_Right_Window = 1         "在右侧窗口中显示taglist窗口
+map <leader>tt :TlistToggle<cr>
+
+" ctags 分析
+map <F12> :!~/tool/bin/ctags -R --c++-kinds=+p --fields=+iaS --extra=+q .<cr>
+
+syntax on
+set background=dark
+colorscheme solarized
+" map control-backspace to delete the previous word
+:imap <C-BS> <C-W>
+
+" 编码
+set enc=utf8
+set fencs=utf8,gbk,gb2312,gb18030,cp936
+
+" 保存退出快捷键
+map Q :q<cr>
+map C :wa<cr>:sh<cr>
+
+" 关闭静态检测，可以手动打开
+let g:syntastic_mode_map = {'mode': 'passive'}
+
+" 注释风格
+autocmd FileType c,cpp set commentstring=//\ %s
+
+" 鼠标
+" set mouse=a
+" map <ScrollWheelUp> <C-Y>
+" map <ScrollWheelDown> <C-E>
+
+" 去除行尾的空白
+fun! <SID>StripTrailingWhitespaces()
+    let l = line(".")
+    let c = col(".")
+    %s/\s\+$//e
+    call cursor(l, c)
+endfun
+autocmd FileType c,cpp,java<Plug>PeepOpenhp,ruby<Plug>PeepOpenython,cc,h autocmd BufWritePre <buffer> :call <SID>StripTrailingWhitespaces()
+
+" 如果不需要，直接删除，重写了 basic.vim 里的设置
+" 1 tab == 2 spaces
+" set shiftwidth=2
+" set tabstop=2
+
+highlight OverLength ctermbg=red ctermfg=white guibg=#592929
+match OverLength /\%81v.\+/
+
+autocmd FileType c,cc,cpp  map <buffer> <leader><space> :w<cr>:make<cr>
+nmap <leader>cn :cn<cr>
+nmap <leader>cp :cp<cr>
+nmap <leader>cw :cw<cr>
