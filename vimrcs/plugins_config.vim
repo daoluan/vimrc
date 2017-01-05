@@ -219,3 +219,8 @@ let g:go_highlight_interfaces = 1
 let g:go_highlight_operators = 1
 let g:go_highlight_build_constraints = 1
 let g:go_fmt_command = "goimports"
+
+" Search for visually selected text
+" http://vim.wikia.com/wiki/Search_for_visually_selected_text
+" select the text visually and press '//'
+vnoremap // y/<C-R>"<CR>N
