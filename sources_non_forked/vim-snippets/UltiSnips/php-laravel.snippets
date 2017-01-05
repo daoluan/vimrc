@@ -36,6 +36,8 @@ endsnippet
 
 #service service provider
 snippet l_ssp "Laravel service provider for service" b
+<?php
+
 /*!
  * \namespace   $1
  * \class       $2
@@ -62,6 +64,8 @@ endsnippet
 
 #repository service provider
 snippet l_rsp "Laravel service provider for repository" b
+<?php
+
 /*!
  * \namespace   $2
  * \class       $3
@@ -100,6 +104,8 @@ endsnippet
 
 #model
 snippet l_md "Laravel simple model" b
+<?php
+
 /*!
  * \namespace   $1
  * \class       $2
@@ -115,14 +121,16 @@ class ${2:`!v expand('%:t:r')`} extends \Eloquent {
 
     public $timestamps = ${5:false};
 
-    protected $hidden  = array(${6});
+    protected $hidden  = [${6}];
 
-    protected $guarded = array(${7:'id'});
+    protected $guarded = [${7:'id'}];
 }
 endsnippet
 
 #abstract repository
 snippet l_ar "Laravel abstract Repository" b
+<?php
+
 /*!
  * \namespace   $1
  * \class       $2
@@ -154,7 +162,7 @@ abstract class ${2:`!v expand('%:t:r')`} implements ${3:BaseRepositoryInterface}
      *
      * \return  Illuminate\Database\Eloquent\Collection
      */
-    public function all($columns = array('*')) {
+    public function all($columns = ['*']) {
         return $this->model->all()->toArray();
     }
 
@@ -181,7 +189,7 @@ abstract class ${2:`!v expand('%:t:r')`} implements ${3:BaseRepositoryInterface}
      *
      * \return  mixed
      */
-    public function find($id, $columns = array('*')) {
+    public function find($id, $columns = ['*']) {
         return $this->model->find($id, $columns);
     }
 }
@@ -189,6 +197,8 @@ endsnippet
 
 #repository
 snippet l_r "Laravel Repository" b
+<?php
+
 /*!
  * \namespace   $1
  * \class       $3
@@ -207,6 +217,8 @@ endsnippet
 
 #service
 snippet l_s "Laravel Service" b
+<?php
+
 /*!
  * \namespace   $1
  * \class       $2
@@ -233,6 +245,8 @@ endsnippet
 
 #facade
 snippet l_f "Laravel Facade" b
+<?php
+
 /*!
  * \namespace   $1
  * \class       $2
