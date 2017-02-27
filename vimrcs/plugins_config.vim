@@ -196,7 +196,7 @@ set fencs=utf8,gbk,gb2312,gb18030,cp936
 
 " 保存退出快捷键
 map Q :q<cr>
-map <leader>c :wa<cr>:sh<cr>
+map <leader>C :wa<cr>:sh<cr>
 map <leader>[ :wa<cr>:make<cr>
 
 " 关闭静态检测，可以手动打开
