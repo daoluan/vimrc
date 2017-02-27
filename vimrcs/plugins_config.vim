@@ -196,7 +196,8 @@ set fencs=utf8,gbk,gb2312,gb18030,cp936
 
 " 保存退出快捷键
 map Q :q<cr>
-map C :wa<cr>:sh<cr>
+map <leader>c :wa<cr>:sh<cr>
+map <leader>[ :wa<cr>:make<cr>
 
 " 关闭静态检测，可以手动打开
 let g:syntastic_mode_map = {'mode': 'passive'}
@@ -216,7 +217,7 @@ fun! <SID>StripTrailingWhitespaces()
     %s/\s\+$//e
     call cursor(l, c)
 endfun
-autocmd FileType c,cpp,java<Plug>PeepOpenhp,ruby<Plug>PeepOpenython,cc,h autocmd BufWritePre <buffer> :call <SID>StripTrailingWhitespaces()
+autocmd FileType c,cpp,java,py,cc,h autocmd BufWritePre <buffer> :call <SID>StripTrailingWhitespaces()
 
 " 如果不需要，直接删除，重写了 basic.vim 里的设置
 " 1 tab == 2 spaces
@@ -243,3 +244,4 @@ let g:go_fmt_command = "goimports"
 " http://vim.wikia.com/wiki/Search_for_visually_selected_text
 " select the text visually and press '//'
 vnoremap // y/<C-R>"<CR>N
+
