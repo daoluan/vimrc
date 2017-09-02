@@ -194,8 +194,9 @@ colorscheme solarized
 set enc=utf8
 set fencs=utf8,gbk,gb2312,gb18030,cp936
 
-" 保存退出快捷键
+" 保存/退出快捷键
 map Q :q<cr>
+nmap <leader>Q :qa<cr>
 map <leader>C :wa<cr>:sh<cr>
 map <leader>[ :wa<cr>:make<cr>
 
@@ -244,4 +245,3 @@ let g:go_fmt_command = "goimports"
 " http://vim.wikia.com/wiki/Search_for_visually_selected_text
 " select the text visually and press '//'
 vnoremap // y/<C-R>"<CR>N
-
