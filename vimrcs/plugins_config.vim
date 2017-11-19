@@ -168,7 +168,10 @@ nnoremap <silent> <leader>c :call SyntasticCheckCoffeescript()<cr>
 let g:gitgutter_enabled=0
 nnoremap <silent> <leader>d :GitGutterToggle<cr>
 
-autocmd VimEnter * NERDTree
+if len(argv()) == 0
+    autocmd VimEnter * NERDTree
+endif
+
 map  :silent! NERDTreeToggle
 let NERDTreeIgnore = ['\.o$','\.d$']
 
@@ -245,3 +248,18 @@ let g:go_fmt_command = "goimports"
 " http://vim.wikia.com/wiki/Search_for_visually_selected_text
 " select the text visually and press '//'
 vnoremap // y/<C-R>"<CR>N
+let g:clang_format#code_style = "google"
+let g:clang_format#style_options = {"IndentWidth":2}
+let g:clang_format#auto_format = 1
+autocmd FileType cpp setlocal omnifunc=libclang#Complete
+autocmd FileType cpp ClangFormatAutoEnable
+
+" path to your ycm_extra_conf
+let g:ycm_global_ycm_extra_conf = '/root/.vim_runtime/sources_non_forked/YouCompleteMe/third_party/ycmd/cpp/ycm/.ycm_extra_conf.py'
+let g:ycm_show_diagnostics_ui = 0
+nnoremap <leader>gd :YcmCompleter GoToDeclaration<CR> 
+
+let g:autopep8_disable_show_diff=1
+
+" solve confilict in vim-surround and vim-yankstack
+call yankstack#setup()
