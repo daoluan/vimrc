@@ -31,12 +31,11 @@ function! go#doc#OpenBrowser(...) abort
 
     let import = out["import"]
     let name = out["name"]
+    let decl = out["decl"]
 
-    " if import is empty, it means we selected a package name
-    if import ==# ""
-      let godoc_url = "https://godoc.org/" . name 
-    else
-      let godoc_url = "https://godoc.org/" . import . "#" . name
+    let godoc_url = "https://godoc.org/" . import
+    if decl !~ "^package"
+      let godoc_url .= "#" . name
     endif
 
     echo godoc_url
@@ -59,17 +58,21 @@ function! go#doc#OpenBrowser(...) abort
 endfunction
 
 function! go#doc#Open(newmode, mode, ...) abort
+  " With argument: run "godoc [arg]".
   if len(a:000)
-    " check if we have 'godoc' and use it automatically
     let bin_path = go#path#CheckBinPath('godoc')
     if empty(bin_path)
       return
     endif
 
-    let command = printf("%s %s", bin_path, join(a:000, ' '))
+    let command = printf("%s %s", go#util#Shellescape(bin_path), join(a:000, ' '))
     let out = go#util#System(command)
+  " Without argument: run gogetdoc on cursor position.
   else
     let out = s:gogetdoc(0)
+    if out == -1
+      return
+    endif
   endif
 
   if go#util#ShellError() != 0
@@ -93,13 +96,20 @@ function! s:GodocView(newposition, position, content) abort
     execute bufwinnr(s:buf_nr) . 'wincmd w'
   endif
 
-  " cap buffer height to 20, but resize it for smaller contents
-  let max_height = 20
-  let content_height = len(split(a:content, "\n"))
-  if content_height > max_height
-    exe 'resize ' . max_height
+  if a:position == "split"
+    " cap window height to 20, but resize it for smaller contents
+    let max_height = get(g:, "go_doc_max_height", 20)
+    let content_height = len(split(a:content, "\n"))
+    if content_height > max_height
+      exe 'resize ' . max_height
+    else
+      exe 'resize ' . content_height
+    endif
   else
-    exe 'resize ' . content_height
+    " set a sane maximum width for vertical splits. In this case the minimum
+    " that fits the godoc for package http without extra linebreaks and line
+    " numbers on
+    exe 'vertical resize 84'
   endif
 
   setlocal filetype=godoc
@@ -131,7 +141,7 @@ function! s:gogetdoc(json) abort
     return -1
   endif
 
-  let cmd =  [bin_path]
+  let cmd = [go#util#Shellescape(bin_path)]
 
   let offset = go#util#OffsetCursor()
   let fname = expand("%:p:gs!\\!/!")
@@ -153,8 +163,7 @@ function! s:gogetdoc(json) abort
     "     file size followed by newline
     "     file contents
     let in = ""
-    let sep = go#util#LineEnding()
-    let content = join(getline(1, '$'), sep)
+    let content = join(go#util#GetLines(), "\n")
     let in = fname . "\n" . strlen(content) . "\n" . content
     let command .= " -modified"
     let out = go#util#System(command, in)
