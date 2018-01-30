@@ -58,7 +58,7 @@ function! go#fmt#Format(withGoimport) abort
   endif
 
   " Write current unsaved buffer to a temp file
-  let l:tmpname = tempname()
+  let l:tmpname = tempname() . '.go'
   call writefile(go#util#GetLines(), l:tmpname)
   if go#util#IsWin()
     let l:tmpname = tr(l:tmpname, '\', '/')
@@ -101,6 +101,9 @@ function! go#fmt#Format(withGoimport) abort
 
   " be smart and jump to the line the new statement was added/removed
   call cursor(line('.') + diff_offset, current_col)
+
+  " Syntax highlighting breaks less often.
+  syntax sync fromstart
 endfunction
 
 " update_file updates the target file with the given formatted source
@@ -127,17 +130,23 @@ function! go#fmt#update_file(source, target)
   let &fileformat = old_fileformat
   let &syntax = &syntax
 
+  let l:listtype = go#list#Type("GoFmt")
 
   " the title information was introduced with 7.4-2200
   " https://github.com/vim/vim/commit/d823fa910cca43fec3c31c030ee908a14c272640
-  if !has('patch-7.4-2200')
-    return
+  if has('patch-7.4.2200')
+    " clean up previous list
+    if l:listtype == "quickfix"
+      let l:list_title = getqflist({'title': 1})
+    else
+      let l:list_title = getloclist(0, {'title': 1})
+    endif
+  else
+    " can't check the title, so assume that the list was for go fmt.
+    let l:list_title = {'title': 'Format'}
   endif
 
-  " clean up previous location list
-  let l:list_title = getqflist({'title': 1})
   if has_key(l:list_title, "title") && l:list_title['title'] == "Format"
-    let l:listtype = go#list#Type("quickfix")
     call go#list#Clean(l:listtype)
     call go#list#Window(l:listtype)
   endif
@@ -152,20 +161,10 @@ function! go#fmt#run(bin_name, source, target)
     return
   endif
 
-  if cmd[0] == "goimports"
-    " change GOPATH too, so goimports can pick up the correct library
-    let old_gopath = $GOPATH
-    let $GOPATH = go#path#Detect()
-  endif
-
   let command = join(cmd, " ")
 
   " execute our command...
   let out = go#util#System(command)
-
-  if cmd[0] == "goimports"
-    let $GOPATH = old_gopath
-  endif
 
   return out
 endfunction
@@ -245,7 +244,7 @@ endfunction
 " show_errors opens a location list and shows the given errors. If the given
 " errors is empty, it closes the the location list
 function! s:show_errors(errors) abort
-  let l:listtype = go#list#Type("quickfix")
+  let l:listtype = go#list#Type("GoFmt")
   if !empty(a:errors)
     call go#list#Populate(l:listtype, a:errors, 'Format')
     echohl Error | echomsg "Gofmt returned error" | echohl None

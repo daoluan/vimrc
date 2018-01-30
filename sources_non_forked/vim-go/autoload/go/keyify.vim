@@ -1,11 +1,8 @@
 function! go#keyify#Keyify()
-  let old_gopath = $GOPATH
-  let $GOPATH = go#path#Detect()
   let bin_path = go#path#CheckBinPath("keyify")
   let fname = fnamemodify(expand("%"), ':p:gs?\\?/?')
 
   if empty(bin_path) || !exists('*json_decode')
-    let $GOPATH = old_gopath
     return
   endif
 
@@ -18,7 +15,6 @@ function! go#keyify#Keyify()
   " We want to output the error message in case the result isn't a JSON
   if type(result) != type({})
     call go#util#EchoError(s:chomp(output))
-    let $GOPATH = old_gopath
     return
   endif
 
@@ -51,9 +47,10 @@ function! go#keyify#Keyify()
 
   call setpos("'<", vis_start)
   call setpos("'>", vis_end)
-  let $GOPATH = old_gopath
 endfunction
 
 function! s:chomp(string)
     return substitute(a:string, '\n\+$', '', '')
 endfunction
+
+" vim: sw=2 ts=2 et
