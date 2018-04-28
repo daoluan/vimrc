@@ -1,3 +1,12 @@
 [submodule "sources_forked/taglist.vim"]
 	path = sources_forked/taglist.vim
 	url = https://github.com/vim-scripts/taglist.vim.git
+[submodule "sources_non_forked/vim-clang-format"]
+	path = sources_non_forked/vim-clang-format
+	url = https://github.com/rhysd/vim-clang-format.git
+[submodule "sources_non_forked/YouCompleteMe"]
+	path = sources_non_forked/YouCompleteMe
+	url = https://github.com/Valloric/YouCompleteMe.git
+[submodule "sources_non_forked/vim-autopep8"]
+	path = sources_non_forked/vim-autopep8
+	url = https://github.com/tell-k/vim-autopep8.git
