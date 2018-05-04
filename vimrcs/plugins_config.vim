@@ -247,14 +247,57 @@ let g:clang_format#code_style = "google"
 let g:clang_format#style_options = {"IndentWidth":2}
 let g:clang_format#auto_format = 1
 autocmd FileType cpp setlocal omnifunc=libclang#Complete
+autocmd FileType c setlocal omnifunc=libclang#Complete
 autocmd FileType cpp ClangFormatAutoEnable
+
+let g:ycm_path_to_python_interpreter='/usr/bin/python'
+autocmd FileType python setlocal omnifunc=pythoncomplete#Complete
 
 " path to your ycm_extra_conf
 let g:ycm_global_ycm_extra_conf = '/root/.vim_runtime/sources_non_forked/YouCompleteMe/third_party/ycmd/cpp/ycm/.ycm_extra_conf.py'
 let g:ycm_show_diagnostics_ui = 0
 nnoremap <leader>gd :YcmCompleter GoToDeclaration<CR> 
 
+" autopep8
 let g:autopep8_disable_show_diff=1
+" format on save
+autocmd BufWritePost *.py Autopep8
+
+"打开vim时不再询问是否加载ycm_extra_conf.py配置"
+"let g:ycm_confirm_extra_conf=0
+"set completeopt=longest,menu
+""python解释器路径"
+let g:ycm_path_to_python_interpreter='/usr/bin/python'
+"是否开启语义补全"
+"let g:ycm_seed_identifiers_with_syntax=1
+""是否在注释中也开启补全"
+" let g:ycm_complete_in_comments=1
+let g:ycm_collect_identifiers_from_comments_and_strings = 0
+"开始补全的字符数"
+let g:ycm_min_num_of_chars_for_completion=0
+""补全后自动关机预览窗口"
+let g:ycm_autoclose_preview_window_after_completion=1
+" 禁止缓存匹配项,每次都重新生成匹配项"
+let g:ycm_cache_omnifunc=0
+" 字符串中也开启补全"
+let g:ycm_complete_in_strings = 1
+" 离开插入模式后自动关闭预览窗口"
+autocmd InsertLeave * if pumvisible() == 0|pclose|endif
+let g:ycm_max_num_candidates = 10
 
 " solve confilict in vim-surround and vim-yankstack
 call yankstack#setup()
+
+" let g:go_fmt_command = "goimports"
+let g:go_autodetect_gopath = 1
+let g:go_list_type = "quickfix"
+
+let g:go_highlight_types = 1
+let g:go_highlight_fields = 1
+let g:go_highlight_functions = 1
+let g:go_highlight_methods = 1
+let g:go_highlight_extra_types = 1
+let g:go_highlight_generate_tags = 1
+
+let g:pymode_rope = 0
+let g:pymode_folding=0
