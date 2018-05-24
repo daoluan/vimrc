@@ -18,14 +18,7 @@ function! go#list#Window(listtype, ...) abort
   " location list increases/decreases, cwindow will not resize when a new
   " updated height is passed. lopen in the other hand resizes the screen.
   if !a:0 || a:1 == 0
-    let autoclose_window = get(g:, 'go_list_autoclose', 1)
-    if autoclose_window
-      if a:listtype == "locationlist"
-        lclose
-      else
-        cclose
-      endif
-    endif
+    call go#list#Close(a:listtype)
     return
   endif
 
@@ -78,25 +71,23 @@ function! go#list#ParseFormat(listtype, errformat, items, title) abort
 
   " parse and populate the location list
   let &errorformat = a:errformat
+  try
+    call go#list#Parse(a:listtype, a:items, a:title)
+  finally
+    "restore back
+    let &errorformat = old_errorformat
+  endtry
+endfunction
+
+" Parse parses the given items based on the global errorformat and
+" populates the list.
+function! go#list#Parse(listtype, items, title) abort
   if a:listtype == "locationlist"
     lgetexpr a:items
     if has("patch-7.4.2200") | call setloclist(0, [], 'a', {'title': a:title}) | endif
   else
     cgetexpr a:items
     if has("patch-7.4.2200") | call setqflist([], 'a', {'title': a:title}) | endif
-  endif
-
-  "restore back
-  let &errorformat = old_errorformat
-endfunction
-
-" Parse parses the given items based on the global errorformat and
-" populates the list.
-function! go#list#Parse(listtype, items) abort
-  if a:listtype == "locationlist"
-    lgetexpr a:items
-  else
-    cgetexpr a:items
   endif
 endfunction
 
@@ -109,12 +100,28 @@ function! go#list#JumpToFirst(listtype) abort
   endif
 endfunction
 
-" Clean cleans the location list
+" Clean cleans and closes the location list 
 function! go#list#Clean(listtype) abort
   if a:listtype == "locationlist"
     lex []
   else
     cex []
+  endif
+
+  call go#list#Close(a:listtype)
+endfunction
+
+" Close closes the location list
+function! go#list#Close(listtype) abort
+  let autoclose_window = get(g:, 'go_list_autoclose', 1)
+  if !autoclose_window
+    return
+  endif
+
+  if a:listtype == "locationlist"
+    lclose
+  else
+    cclose
   endif
 endfunction
 
@@ -135,21 +142,22 @@ endfunction
 " single file or buffer. Keys that begin with an underscore are not supported
 " in g:go_list_type_commands.
 let s:default_list_type_commands = {
-      \ "GoBuild":      "quickfix",
-      \ "GoErrCheck":   "quickfix",
-      \ "GoFmt":        "locationlist",
-      \ "GoGenerate":   "quickfix",
-      \ "GoInstall":    "quickfix",
-      \ "GoLint":       "quickfix",
-      \ "GoMetaLinter": "quickfix",
-      \ "GoModifyTags": "locationlist",
-      \ "GoRename":     "quickfix",
-      \ "GoRun":        "quickfix",
-      \ "GoTest":       "quickfix",
-      \ "GoVet":        "quickfix",
-      \ "_guru":        "locationlist",
-      \ "_term":        "locationlist",
-      \ "_job":         "locationlist",
+      \ "GoBuild":              "quickfix",
+      \ "GoErrCheck":           "quickfix",
+      \ "GoFmt":                "locationlist",
+      \ "GoGenerate":           "quickfix",
+      \ "GoInstall":            "quickfix",
+      \ "GoLint":               "quickfix",
+      \ "GoMetaLinter":         "quickfix",
+      \ "GoMetaLinterAutoSave": "locationlist",
+      \ "GoModifyTags":         "locationlist",
+      \ "GoRename":             "quickfix",
+      \ "GoRun":                "quickfix",
+      \ "GoTest":               "quickfix",
+      \ "GoVet":                "quickfix",
+      \ "_guru":                "locationlist",
+      \ "_term":                "locationlist",
+      \ "_job":                 "locationlist",
   \ }
 
 function! go#list#Type(for) abort

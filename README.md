@@ -13,22 +13,30 @@ I would, of course, recommend using the awesome version.
 
 
 ## How to install the Awesome version?
-
+### Install for your own user only
 The awesome version includes a lot of great plugins, configurations and color schemes that make Vim a lot better. To install it simply do following from your terminal:
 
-    git clone --depth=1 https://github.com/amix/vimrc.git ~/.vim_runtime
-    sh ~/.vim_runtime/install_awesome_vimrc.sh
+	git clone --depth=1 https://github.com/amix/vimrc.git ~/.vim_runtime
+	sh ~/.vim_runtime/install_awesome_vimrc.sh
+	
+### Install for multiple users
+To install for multiple users, the repository needs to be cloned to a location accessible for all the intended users.
 
+	git clone --depth=1 https://github.com/amix/vimrc.git /opt/vim_runtime
+	sh ~/.vim_runtime/install_awesome_parameterized.sh /opt/vim_runtime user0 user1 user2
+	# to install for all users with home directories
+	sh ~/.vim_runtime/install_awesome_parameterized.sh /opt/vim_runtime --all
+	
+Naturally, `/opt/vim_runtime` can be any directory, as long as all the users specified have read access.
 
 ## Fonts
 
-I recommend using [IBM Plex Mono font](https://ibm.github.io/type/) (it's an open-source and awesome font that can make your code beautiful). The Awesome vimrc is already setup to try to use it.
+I recommend using [IBM Plex Mono font](https://github.com/IBM/plex) (it's an open-source and awesome font that can make your code beautiful). The Awesome vimrc is already setup to try to use it.
 
 Some other fonts that Awesome will try to use:
 
 * [Hack](http://sourcefoundry.org/hack/)
 * [Source Code Pro](https://adobe-fonts.github.io/source-code-pro/)
-
 
 ## How to install the Basic version?
 
@@ -36,13 +44,13 @@ The basic version is just one file and no plugins. Just copy [basic.vim](https:/
 
 The basic version is useful to install on remote servers where you don't need many plugins, and you don't do many edits.
 
-	git clone --depth=1 git://github.com/amix/vimrc.git ~/.vim_runtime
+	git clone --depth=1 https://github.com/amix/vimrc.git ~/.vim_runtime
 	sh ~/.vim_runtime/install_basic_vimrc.sh
 
 
 ## How to install on Windows?
 
-Use [msysgit](http://msysgit.github.com/) to checkout the repository and run the installation instructions above. No special instructions needed ;-)
+Use [gitforwindows](http://gitforwindows.org/) to checkout the repository and run the installation instructions above. No special instructions needed ;-)
 
 
 ## How to install on Linux
@@ -89,14 +97,14 @@ I recommend reading the docs of these plugins to understand them better. Each pl
 * [open_file_under_cursor.vim](https://github.com/amix/open_file_under_cursor.vim): Open file under cursor when pressing `gf`
 * [pathogen.vim](https://github.com/tpope/vim-pathogen): Manage your vim runtimepath 
 * [snipmate.vim](https://github.com/garbas/vim-snipmate): snipmate.vim aims to be a concise vim script that implements some of TextMate's snippets features in Vim
-* [syntastic](https://github.com/scrooloose/syntastic): Syntax checking hacks for vim
+* [ale](https://github.com/w0rp/ale): Syntax and lint checking for vim (async)
 * [vim-commentary](https://github.com/tpope/vim-commentary): Comment stuff out.  Use `gcc` to comment out a line (takes a count), `gc` to comment out the target of a motion. `gcu` uncomments a set of adjacent commented lines.
 * [vim-expand-region](https://github.com/terryma/vim-expand-region): Allows you to visually select increasingly larger regions of text using the same key combination
 * [vim-fugitive](https://github.com/tpope/vim-fugitive): A Git wrapper so awesome, it should be illegal
 * [vim-indent-object](https://github.com/michaeljsmith/vim-indent-object): Defines a new text object representing lines of code at the same indent level. Useful for python/vim scripts
 * [vim-multiple-cursors](https://github.com/terryma/vim-multiple-cursors): Sublime Text style multiple selections for Vim, CTRL+N is remapped to CTRL+S (due to YankRing)
 * [vim-yankstack](https://github.com/maxbrunsfeld/vim-yankstack): Maintains a history of previous yanks, changes and deletes
-Remove all clutter and focus only on the essential. Similar to iA Writer or Write Room [Read more here](http://amix.dk/blog/post/19744)
+* [vim-zenroom2](https://github.com/amix/vim-zenroom2) Remove all clutter and focus only on the essential. Similar to iA Writer or Write Room
 
 
 ## Included color schemes
@@ -129,7 +137,7 @@ After you have installed the setup, you can create **~/.vim_runtime/my_configs.v
 You can also install your plugins, for instance, via pathogen you can install [vim-rails](https://github.com/tpope/vim-rails):
 
 	cd ~/.vim_runtime
-	git clone git://github.com/tpope/vim-rails.git sources_non_forked/vim-rails
+	git clone git://github.com/tpope/vim-rails.git my_plugins/vim-rails
 
 
 ## Key Mappings

@@ -10,8 +10,8 @@ if !exists("g:go_metalinter_enabled")
   let g:go_metalinter_enabled = ['vet', 'golint', 'errcheck']
 endif
 
-if !exists("g:go_metalinter_excludes")
-  let g:go_metalinter_excludes = []
+if !exists("g:go_metalinter_disabled")
+  let g:go_metalinter_disabled = []
 endif
 
 if !exists("g:go_golint_bin")
@@ -24,9 +24,9 @@ endif
 
 function! go#lint#Gometa(autosave, ...) abort
   if a:0 == 0
-    let goargs = shellescape(expand('%:p:h'))
+    let goargs = [expand('%:p:h')]
   else
-    let goargs = go#util#Shelljoin(a:000)
+    let goargs = a:000
   endif
 
   let bin_path = go#path#CheckBinPath("gometalinter")
@@ -44,8 +44,8 @@ function! go#lint#Gometa(autosave, ...) abort
       let cmd += ["--enable=".linter]
     endfor
 
-    for exclude in g:go_metalinter_excludes
-      let cmd += ["--exclude=".exclude]
+    for linter in g:go_metalinter_disabled
+      let cmd += ["--disable=".linter]
     endfor
 
     " gometalinter has a --tests flag to tell its linters whether to run
@@ -54,12 +54,18 @@ function! go#lint#Gometa(autosave, ...) abort
     " test files. One example of a linter that will not run against tests if
     " we do not specify this flag is errcheck.
     let cmd += ["--tests"]
-
-    " path
-    let cmd += [expand('%:p:h')]
   else
     " the user wants something else, let us use it.
     let cmd += split(g:go_metalinter_command, " ")
+  endif
+
+  if a:autosave
+    " redraw so that any messages that were displayed while writing the file
+    " will be cleared
+    redraw
+
+    " Include only messages for the active buffer for autosave.
+    let cmd += [printf('--include=^%s:.*$', fnamemodify(expand('%:p'), ":."))]
   endif
 
   " gometalinter has a default deadline of 5 seconds.
@@ -78,29 +84,27 @@ function! go#lint#Gometa(autosave, ...) abort
       let cmd += ["--deadline=" . deadline]
     endif
 
-    call s:lint_job({'cmd': cmd})
+    let cmd += goargs
+
+    call s:lint_job({'cmd': cmd}, a:autosave)
     return
   endif
 
   " We're calling gometalinter synchronously.
-
   let cmd += ["--deadline=" . get(g:, 'go_metalinter_deadline', "5s")]
 
+  let cmd += goargs
+
+  let [l:out, l:err] = go#util#Exec(cmd)
+
   if a:autosave
-    " include only messages for the active buffer
-    let cmd += ["--include='^" . expand('%:p') . ".*$'"]
+    let l:listtype = go#list#Type("GoMetaLinterAutoSave")
+  else
+    let l:listtype = go#list#Type("GoMetaLinter")
   endif
 
-
-  let meta_command = join(cmd, " ")
-
-  let out = go#util#System(meta_command)
-
-  let l:listtype = go#list#Type("GoMetaLinter")
-  if go#util#ShellError() == 0
-    redraw | echo
+  if l:err == 0
     call go#list#Clean(l:listtype)
-    call go#list#Window(l:listtype)
     echon "vim-go: " | echohl Function | echon "[metalinter] PASS" | echohl None
   else
     " GoMetaLinter can output one of the two, so we look for both:
@@ -142,7 +146,7 @@ function! go#lint#Golint(...) abort
   endif
 
   let l:listtype = go#list#Type("GoLint")
-  call go#list#Parse(l:listtype, out)
+  call go#list#Parse(l:listtype, out, "GoLint")
   let errors = go#list#Get(l:listtype)
   call go#list#Window(l:listtype, len(errors))
   call go#list#JumpToFirst(l:listtype)
@@ -161,8 +165,9 @@ function! go#lint#Vet(bang, ...) abort
 
   let l:listtype = go#list#Type("GoVet")
   if go#util#ShellError() != 0
-    let errors = go#tool#ParseErrors(split(out, '\n'))
-    call go#list#Populate(l:listtype, errors, 'Vet')
+    let errorformat="%-Gexit status %\\d%\\+," . &errorformat
+    call go#list#ParseFormat(l:listtype, l:errorformat, out, "GoVet")
+    let errors = go#list#Get(l:listtype)
     call go#list#Window(l:listtype, len(errors))
     if !empty(errors) && !a:bang
       call go#list#JumpToFirst(l:listtype)
@@ -170,7 +175,6 @@ function! go#lint#Vet(bang, ...) abort
     echon "vim-go: " | echohl ErrorMsg | echon "[vet] FAIL" | echohl None
   else
     call go#list#Clean(l:listtype)
-    call go#list#Window(l:listtype)
     redraw | echon "vim-go: " | echohl Function | echon "[vet] PASS" | echohl None
   endif
 endfunction
@@ -223,7 +227,6 @@ function! go#lint#Errcheck(...) abort
     endif
   else
     call go#list#Clean(l:listtype)
-    call go#list#Window(l:listtype)
     echon "vim-go: " | echohl Function | echon "[errcheck] PASS" | echohl None
   endif
 
@@ -240,11 +243,19 @@ function! go#lint#ToggleMetaLinterAutoSave() abort
   call go#util#EchoProgress("auto metalinter enabled")
 endfunction
 
-function s:lint_job(args)
-  let status_dir = expand('%:p:h')
-  let started_at = reltime()
+function! s:lint_job(args, autosave)
+  let state = {
+        \ 'status_dir': expand('%:p:h'),
+        \ 'started_at': reltime(),
+        \ 'messages': [],
+        \ 'exited': 0,
+        \ 'closed': 0,
+        \ 'exit_status': 0,
+        \ 'winnr': winnr(),
+        \ 'autosave': a:autosave
+      \ }
 
-  call go#statusline#Update(status_dir, {
+  call go#statusline#Update(state.status_dir, {
         \ 'desc': "current status",
         \ 'type': "gometalinter",
         \ 'state': "analysing",
@@ -253,29 +264,20 @@ function s:lint_job(args)
   " autowrite is not enabled for jobs
   call go#cmd#autowrite()
 
-  let l:listtype = go#list#Type("GoMetaLinter")
-  let l:errformat = '%f:%l:%c:%t%*[^:]:\ %m,%f:%l::%t%*[^:]:\ %m'
+  if a:autosave
+    let state.listtype = go#list#Type("GoMetaLinterAutoSave")
+  else
+    let state.listtype = go#list#Type("GoMetaLinter")
+  endif
 
-  function! s:callback(chan, msg) closure
-    let old_errorformat = &errorformat
-    let &errorformat = l:errformat
-    if l:listtype == "locationlist"
-      lad a:msg
-    elseif l:listtype == "quickfix"
-      caddexpr a:msg
-    endif
-    let &errorformat = old_errorformat
-
-    " TODO(jinleileiking): give a configure to jump or not
-    let l:winnr = winnr()
-
-    let errors = go#list#Get(l:listtype)
-    call go#list#Window(l:listtype, len(errors))
-
-    exe l:winnr . "wincmd w"
+  function! s:callback(chan, msg) dict closure
+    call add(self.messages, a:msg)
   endfunction
 
-  function! s:exit_cb(job, exitval) closure
+  function! s:exit_cb(job, exitval) dict
+    let self.exited = 1
+    let self.exit_status = a:exitval
+
     let status = {
           \ 'desc': 'last status',
           \ 'type': "gometaliner",
@@ -286,22 +288,50 @@ function s:lint_job(args)
       let status.state = "failed"
     endif
 
-    let elapsed_time = reltimestr(reltime(started_at))
+    let elapsed_time = reltimestr(reltime(self.started_at))
     " strip whitespace
     let elapsed_time = substitute(elapsed_time, '^\s*\(.\{-}\)\s*$', '\1', '')
     let status.state .= printf(" (%ss)", elapsed_time)
 
-    call go#statusline#Update(status_dir, status)
+    call go#statusline#Update(self.status_dir, status)
 
-    let errors = go#list#Get(l:listtype)
-    if empty(errors)
-      call go#list#Window(l:listtype, len(errors))
-    elseif has("patch-7.4.2200")
-      if l:listtype == 'quickfix'
-        call setqflist([], 'a', {'title': 'GoMetaLinter'})
-      else
-        call setloclist(0, [], 'a', {'title': 'GoMetaLinter'})
-      endif
+    if self.closed
+      call self.show_errors()
+    endif
+  endfunction
+
+  function! s:close_cb(ch) dict
+    let self.closed = 1
+
+    if self.exited
+      call self.show_errors()
+    endif
+  endfunction
+
+
+  function state.show_errors()
+    let l:winnr = winnr()
+
+    " make sure the current window is the window from which gometalinter was
+    " run when the listtype is locationlist so that the location list for the
+    " correct window will be populated.
+    if self.listtype == 'locationlist'
+      exe self.winnr . "wincmd w"
+    endif
+
+    let l:errorformat = '%f:%l:%c:%t%*[^:]:\ %m,%f:%l::%t%*[^:]:\ %m'
+    call go#list#ParseFormat(self.listtype, l:errorformat, self.messages, 'GoMetaLinter')
+
+    let errors = go#list#Get(self.listtype)
+    call go#list#Window(self.listtype, len(errors))
+
+    " move to the window that was active before processing the errors, because
+    " the user may have moved around within the window or even moved to a
+    " different window since saving. Moving back to current window as of the
+    " start of this function avoids the perception that the quickfix window
+    " steals focus when linting takes a while.
+    if self.autosave
+      exe l:winnr . "wincmd w"
     endif
 
     if get(g:, 'go_echo_command_info', 1)
@@ -309,14 +339,15 @@ function s:lint_job(args)
     endif
   endfunction
 
+  " explicitly bind the callbacks to state so that self within them always
+  " refers to state. See :help Partial for more information.
   let start_options = {
-        \ 'callback': funcref("s:callback"),
-        \ 'exit_cb': funcref("s:exit_cb"),
+        \ 'callback': funcref("s:callback", [], state),
+        \ 'exit_cb': funcref("s:exit_cb", [], state),
+        \ 'close_cb': funcref("s:close_cb", [], state),
         \ }
 
   call job_start(a:args.cmd, start_options)
-
-  call go#list#Clean(l:listtype)
 
   if get(g:, 'go_echo_command_info', 1)
     call go#util#EchoProgress("linting started ...")
