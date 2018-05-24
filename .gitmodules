@@ -10,3 +10,9 @@
 [submodule "sources_non_forked/vim-autopep8"]
 	path = sources_non_forked/vim-autopep8
 	url = https://github.com/tell-k/vim-autopep8.git
+[submodule "sources_non_forked/vim-template"]
+	path = sources_non_forked/vim-template
+	url = https://github.com/aperezdc/vim-template.git
+[submodule "sources_non_forked/ultisnips"]
+	path = sources_non_forked/ultisnips
+	url = https://github.com/SirVer/ultisnips.git

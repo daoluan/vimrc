@@ -301,3 +301,8 @@ let g:go_highlight_generate_tags = 1
 
 let g:pymode_rope = 0
 let g:pymode_folding=0
+
+" ultisnips config
+let g:UltiSnipsExpandTrigger = '<C-j>'
+let g:UltiSnipsJumpForwardTrigger = '<C-j>'
+let g:UltiSnipsJumpBackwardTrigger = '<C-k>'
