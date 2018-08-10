@@ -166,12 +166,12 @@ if len(argv()) == 0
 endif
 
 map  :silent! NERDTreeToggle
-let NERDTreeIgnore = ['\.o$','\.d$']
+let NERDTreeIgnore += ['\.o$','\.d$', 'tags']
 
 """"""""""""""""""""""""""""""
 " Tag list (ctags)
 """"""""""""""""""""""""""""""""
-let Tlist_Ctags_Cmd = '/usr/bin/ctags'
+let Tlist_Ctags_Cmd = '/usr/local/bin/ctags'
 let Tlist_Show_One_File = 1            "不同时显示多个文件的tag，只显示当前文件的
 let Tlist_Exit_OnlyWindow = 1          "如果taglist窗口是最后一个窗口，则退出vim
 let Tlist_Use_Right_Window = 1"在右侧窗口中显示taglist窗口
@@ -253,6 +253,7 @@ autocmd FileType python setlocal omnifunc=pythoncomplete#Complete
 
 " path to your ycm_extra_conf
 let g:ycm_global_ycm_extra_conf = '/root/.vim_runtime/sources_non_forked/YouCompleteMe/third_party/ycmd/cpp/ycm/.ycm_extra_conf.py'
+let g:ycm_global_ycm_extra_conf = '~/.vim_runtime/sources_non_forked/YouCompleteMe/third_party/ycmd/cpp/ycm/.ycm_extra_conf.py'
 let g:ycm_show_diagnostics_ui = 0
 nnoremap <leader>gd :YcmCompleter GoToDeclaration<CR> 
 
@@ -304,3 +305,18 @@ let g:pymode_folding=0
 let g:UltiSnipsExpandTrigger = '<C-j>'
 let g:UltiSnipsJumpForwardTrigger = '<C-j>'
 let g:UltiSnipsJumpBackwardTrigger = '<C-k>'
+let g:email="g.daoluan@gmail.com"
+
+let g:ycm_python_binary_path = '/usr/local/bin/python3'
+
+set nu
+
+" js beautify
+autocmd BufWritePost *.js :call JsBeautify() 
+autocmd BufWritePost *.json :call JsBeautify() 
+autocmd BufWritePost *.jsx :call JsBeautify() 
+autocmd BufWritePost *.html :call JsBeautify() 
+autocmd BufWritePost *.css :call JsBeautify() 
+
+" set js indent
+autocmd BufNewFile,BufRead *.js :setl sw=2 sts=2 et
