@@ -16,3 +16,6 @@
 [submodule "sources_non_forked/ultisnips"]
 	path = sources_non_forked/ultisnips
 	url = https://github.com/SirVer/ultisnips.git
+[submodule "sources_non_forked/vim-jsbeautify"]
+	path = sources_non_forked/vim-jsbeautify
+	url = https://github.com/maksimr/vim-jsbeautify.git
