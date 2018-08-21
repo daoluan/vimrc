@@ -330,10 +330,12 @@ set nu
 
 " js beautify
 autocmd BufWritePost *.js :call JsBeautify() 
-autocmd BufWritePost *.json :call JsBeautify() 
-autocmd BufWritePost *.jsx :call JsBeautify() 
-autocmd BufWritePost *.html :call JsBeautify() 
-autocmd BufWritePost *.css :call JsBeautify() 
+autocmd BufWritePost *.json :call JsonBeautify() 
+autocmd BufWritePost *.jsx :call JsxBeautify() 
+autocmd BufWritePost *.html :call HtmlBeautify() 
+autocmd BufWritePost *.css :call CSSBeautify() 
 
 " set js indent
 autocmd BufNewFile,BufRead *.js :setl sw=2 sts=2 et
+
+" let g:vim_markdown_folding_disabled = 1
