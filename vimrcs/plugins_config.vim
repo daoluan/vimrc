@@ -269,8 +269,7 @@ let g:ycm_path_to_python_interpreter='/usr/bin/python'
 autocmd FileType python setlocal omnifunc=pythoncomplete#Complete
 
 " path to your ycm_extra_conf
-let g:ycm_global_ycm_extra_conf = '/root/.vim_runtime/sources_non_forked/YouCompleteMe/third_party/ycmd/cpp/ycm/.ycm_extra_conf.py'
-let g:ycm_global_ycm_extra_conf = '~/.vim_runtime/sources_non_forked/YouCompleteMe/third_party/ycmd/cpp/ycm/.ycm_extra_conf.py'
+let g:ycm_global_ycm_extra_conf = '~/.vim_runtime/sources_non_forked/YouCompleteMe/third_party/ycmd/.ycm_extra_conf.py'
 let g:ycm_show_diagnostics_ui = 0
 nnoremap <leader>gd :YcmCompleter GoToDeclaration<CR> 
 
