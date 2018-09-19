@@ -18,8 +18,11 @@ map <leader>tt :TlistToggle<cr>
 map <F12> :!~/tool/bin/ctags -R --c++-kinds=+p --fields=+iaS --extra=+q .<cr>
 
 syntax on
-set background=dark
+let g:solarized_termcolors=256
+set background=light " 如果需使用 dark 必须先设置 light...
 colorscheme solarized
+set background=dark
+
 " map control-backspace to delete the previous word
 :imap <C-BS> <C-W>
 
