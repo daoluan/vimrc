@@ -16,8 +16,7 @@ vim=${1:-}
 
 case "$vim" in
   "vim-7.4")
-    # This is what the most recent Ubuntu LTS (16.04) ships with.
-    tag="v7.4.1689"
+    tag="v7.4.2009"
     giturl="https://github.com/vim/vim"
     ;;
 
@@ -31,7 +30,7 @@ case "$vim" in
 
   "nvim")
     # Use latest stable version.
-    tag="v0.2.0"
+    tag="v0.3.1"
     giturl="https://github.com/neovim/neovim"
     ;;
 
@@ -92,6 +91,7 @@ fi
 # Make sure all Go tools and other dependencies are installed.
 echo "Installing Go binaries"
 export GOPATH=$installdir
+export GO111MODULE=off
 export PATH=${GOPATH}/bin:$PATH
 "$vimgodir/scripts/run-vim" $vim +':silent :GoUpdateBinaries' +':qa'
 

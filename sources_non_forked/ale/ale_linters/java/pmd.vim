@@ -2,7 +2,7 @@
 " Description: PMD for Java files
 
 function! ale_linters#java#pmd#Handle(buffer, lines) abort
-    let l:pattern = '"\(\d\+\)",".\+","\(.\+\)","\(\d\+\)","\(\d\+\)","\(.\+\)","\(.\+\)","\(.\+\)"$'
+    let l:pattern = '"\(\d\+\)",".*","\(.\+\)","\(\d\+\)","\(\d\+\)","\(.\+\)","\(.\+\)","\(.\+\)"$'
     let l:output = []
 
     for l:match in ale#util#GetMatches(a:lines, l:pattern)
@@ -31,6 +31,6 @@ endif
 call ale#linter#Define('java', {
 \   'name': 'pmd',
 \   'executable': 'pmd',
-\   'command_callback': 'ale_linters#java#pmd#GetCommand',
+\   'command': function('ale_linters#java#pmd#GetCommand'),
 \   'callback': 'ale_linters#java#pmd#Handle',
 \})

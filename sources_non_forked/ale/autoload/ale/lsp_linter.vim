@@ -38,7 +38,7 @@ function! s:HandleLSPDiagnostics(conn_id, response) abort
 
     let l:loclist = ale#lsp#response#ReadDiagnostics(a:response)
 
-    call ale#engine#HandleLoclist(l:linter_name, l:buffer, l:loclist)
+    call ale#engine#HandleLoclist(l:linter_name, l:buffer, l:loclist, 0)
 endfunction
 
 function! s:HandleTSServerDiagnostics(response, error_type) abort
@@ -55,20 +55,33 @@ function! s:HandleTSServerDiagnostics(response, error_type) abort
     endif
 
     let l:thislist = ale#lsp#response#ReadTSServerDiagnostics(a:response)
+    let l:no_changes = 0
 
     " tsserver sends syntax and semantic errors in separate messages, so we
     " have to collect the messages separately for each buffer and join them
     " back together again.
     if a:error_type is# 'syntax'
+        if len(l:thislist) is 0 && len(get(l:info, 'syntax_loclist', [])) is 0
+            let l:no_changes = 1
+        endif
+
         let l:info.syntax_loclist = l:thislist
     else
+        if len(l:thislist) is 0 && len(get(l:info, 'semantic_loclist', [])) is 0
+            let l:no_changes = 1
+        endif
+
         let l:info.semantic_loclist = l:thislist
+    endif
+
+    if l:no_changes
+        return
     endif
 
     let l:loclist = get(l:info, 'semantic_loclist', [])
     \   + get(l:info, 'syntax_loclist', [])
 
-    call ale#engine#HandleLoclist(l:linter_name, l:buffer, l:loclist)
+    call ale#engine#HandleLoclist(l:linter_name, l:buffer, l:loclist, 0)
 endfunction
 
 function! s:HandleLSPErrorMessage(linter_name, response) abort
@@ -99,9 +112,10 @@ endfunction
 
 function! ale#lsp_linter#HandleLSPResponse(conn_id, response) abort
     let l:method = get(a:response, 'method', '')
-    let l:linter_name = get(s:lsp_linter_map, a:conn_id, '')
 
     if get(a:response, 'jsonrpc', '') is# '2.0' && has_key(a:response, 'error')
+        let l:linter_name = get(s:lsp_linter_map, a:conn_id, '')
+
         call s:HandleLSPErrorMessage(l:linter_name, a:response)
     elseif l:method is# 'textDocument/publishDiagnostics'
         call s:HandleLSPDiagnostics(a:conn_id, a:response)
@@ -115,103 +129,242 @@ function! ale#lsp_linter#HandleLSPResponse(conn_id, response) abort
 endfunction
 
 function! ale#lsp_linter#GetOptions(buffer, linter) abort
-    let l:initialization_options = {}
-
     if has_key(a:linter, 'initialization_options_callback')
-        let l:initialization_options = ale#util#GetFunction(a:linter.initialization_options_callback)(a:buffer)
-    elseif has_key(a:linter, 'initialization_options')
-        let l:initialization_options = a:linter.initialization_options
+        return ale#util#GetFunction(a:linter.initialization_options_callback)(a:buffer)
     endif
 
-    return l:initialization_options
+    if has_key(a:linter, 'initialization_options')
+        let l:Options = a:linter.initialization_options
+
+        if type(l:Options) is v:t_func
+            let l:Options = l:Options(a:buffer)
+        endif
+
+        return l:Options
+    endif
+
+    return {}
 endfunction
 
-" Given a buffer, an LSP linter, start up an LSP linter and get ready to
-" receive messages for the document.
-function! ale#lsp_linter#StartLSP(buffer, linter) abort
-    let l:command = ''
-    let l:address = ''
-    let l:root = ale#util#GetFunction(a:linter.project_root_callback)(a:buffer)
-
-    if empty(l:root) && a:linter.lsp isnot# 'tsserver'
-        " If there's no project root, then we can't check files with LSP,
-        " unless we are using tsserver, which doesn't use project roots.
-        return {}
+function! ale#lsp_linter#GetConfig(buffer, linter) abort
+    if has_key(a:linter, 'lsp_config_callback')
+        return ale#util#GetFunction(a:linter.lsp_config_callback)(a:buffer)
     endif
 
-    let l:init_options = ale#lsp_linter#GetOptions(a:buffer, a:linter)
+    if has_key(a:linter, 'lsp_config')
+        let l:Config = a:linter.lsp_config
 
-    if a:linter.lsp is# 'socket'
-        let l:address = ale#linter#GetAddress(a:buffer, a:linter)
-        let l:conn_id = ale#lsp#ConnectToAddress(l:address, l:init_options)
-    else
-        let l:executable = ale#linter#GetExecutable(a:buffer, a:linter)
-
-        if empty(l:executable) || !executable(l:executable)
-            return {}
+        if type(l:Config) is v:t_func
+            let l:Config = l:Config(a:buffer)
         endif
 
-        let l:command = ale#linter#GetCommand(a:buffer, a:linter)
-        " Format the command, so %e can be formatted into it.
-        let l:command = ale#command#FormatCommand(a:buffer, l:executable, l:command, 0)[1]
-        let l:command = ale#job#PrepareCommand(a:buffer, l:command)
-        let l:conn_id = ale#lsp#StartProgram(
-        \   l:executable,
-        \   l:command,
-        \   l:init_options,
-        \)
+        return l:Config
     endif
 
-    if empty(l:conn_id)
-        if g:ale_history_enabled && !empty(l:command)
-            call ale#history#Add(a:buffer, 'failed', l:conn_id, l:command)
+    return {}
+endfunction
+
+function! ale#lsp_linter#FindProjectRoot(buffer, linter) abort
+    let l:buffer_ale_root = getbufvar(a:buffer, 'ale_lsp_root', {})
+
+    if type(l:buffer_ale_root) is v:t_string
+        return l:buffer_ale_root
+    endif
+
+    " Try to get a buffer-local setting for the root
+    if has_key(l:buffer_ale_root, a:linter.name)
+        let l:Root = l:buffer_ale_root[a:linter.name]
+
+        if type(l:Root) is v:t_func
+            return l:Root(a:buffer)
+        else
+            return l:Root
         endif
-
-        return {}
     endif
 
-    " tsserver behaves differently, so tell the LSP API that it is tsserver.
-    if a:linter.lsp is# 'tsserver'
-        call ale#lsp#MarkConnectionAsTsserver(l:conn_id)
+    " Try to get a global setting for the root
+    if has_key(g:ale_lsp_root, a:linter.name)
+        let l:Root = g:ale_lsp_root[a:linter.name]
+
+        if type(l:Root) is v:t_func
+            return l:Root(a:buffer)
+        else
+            return l:Root
+        endif
     endif
 
-    " Register the project now the connection is ready.
-    call ale#lsp#RegisterProject(l:conn_id, l:root)
+    " Fall back to the linter-specific configuration
+    if has_key(a:linter, 'project_root')
+        let l:Root = a:linter.project_root
 
-    let l:language_id = ale#util#GetFunction(a:linter.language_callback)(a:buffer)
+        return type(l:Root) is v:t_func ? l:Root(a:buffer) : l:Root
+    endif
 
-    let l:details = {
-    \   'buffer': a:buffer,
-    \   'connection_id': l:conn_id,
-    \   'command': l:command,
-    \   'project_root': l:root,
-    \   'language_id': l:language_id,
-    \}
+    return ale#util#GetFunction(a:linter.project_root_callback)(a:buffer)
+endfunction
 
-    if ale#lsp#OpenDocument(l:conn_id, l:root, a:buffer, l:language_id)
+" This function is accessible so tests can call it.
+function! ale#lsp_linter#OnInit(linter, details, Callback) abort
+    let l:buffer = a:details.buffer
+    let l:conn_id = a:details.connection_id
+    let l:command = a:details.command
+
+    let l:config = ale#lsp_linter#GetConfig(l:buffer, a:linter)
+    let l:language_id = ale#util#GetFunction(a:linter.language_callback)(l:buffer)
+
+    call ale#lsp#UpdateConfig(l:conn_id, l:buffer, l:config)
+
+    if ale#lsp#OpenDocument(l:conn_id, l:buffer, l:language_id)
         if g:ale_history_enabled && !empty(l:command)
-            call ale#history#Add(a:buffer, 'started', l:conn_id, l:command)
+            call ale#history#Add(l:buffer, 'started', l:conn_id, l:command)
         endif
     endif
 
     " The change message needs to be sent for tsserver before doing anything.
     if a:linter.lsp is# 'tsserver'
-        call ale#lsp#NotifyForChanges(l:conn_id, l:root, a:buffer)
+        call ale#lsp#NotifyForChanges(l:conn_id, l:buffer)
     endif
 
-    return l:details
+    call a:Callback(a:linter, a:details)
 endfunction
 
-function! ale#lsp_linter#CheckWithLSP(buffer, linter) abort
-    let l:info = g:ale_buffer_info[a:buffer]
-    let l:lsp_details = ale#lsp_linter#StartLSP(a:buffer, a:linter)
+function! s:StartLSP(options, address, executable, command) abort
+    let l:buffer = a:options.buffer
+    let l:linter = a:options.linter
+    let l:root = a:options.root
+    let l:Callback = a:options.callback
 
-    if empty(l:lsp_details)
+    let l:init_options = ale#lsp_linter#GetOptions(l:buffer, l:linter)
+
+    if l:linter.lsp is# 'socket'
+        let l:conn_id = ale#lsp#Register(a:address, l:root, l:init_options)
+        let l:ready = ale#lsp#ConnectToAddress(l:conn_id, a:address)
+        let l:command = ''
+    else
+        let l:conn_id = ale#lsp#Register(a:executable, l:root, l:init_options)
+
+        " tsserver behaves differently, so tell the LSP API that it is tsserver.
+        if l:linter.lsp is# 'tsserver'
+            call ale#lsp#MarkConnectionAsTsserver(l:conn_id)
+        endif
+
+        let l:command = ale#command#FormatCommand(l:buffer, a:executable, a:command, 0, v:false)[1]
+        let l:command = ale#job#PrepareCommand(l:buffer, l:command)
+        let l:ready = ale#lsp#StartProgram(l:conn_id, a:executable, l:command)
+    endif
+
+    if !l:ready
+        if g:ale_history_enabled && !empty(a:command)
+            call ale#history#Add(l:buffer, 'failed', l:conn_id, a:command)
+        endif
+
         return 0
     endif
 
-    let l:id = l:lsp_details.connection_id
-    let l:root = l:lsp_details.project_root
+    let l:details = {
+    \   'buffer': l:buffer,
+    \   'connection_id': l:conn_id,
+    \   'command': l:command,
+    \   'project_root': l:root,
+    \}
+
+    call ale#lsp#OnInit(l:conn_id, {->
+    \   ale#lsp_linter#OnInit(l:linter, l:details, l:Callback)
+    \})
+
+    return 1
+endfunction
+
+function! s:StartWithAddress(options, address) abort
+    if ale#command#IsDeferred(a:address)
+        let a:address.result_callback = {
+        \   address -> s:StartWithAddress(a:options, address)
+        \}
+
+        return 1
+    endif
+
+    if empty(a:address)
+        return 0
+    endif
+
+    return s:StartLSP(a:options, a:address, '', '')
+endfunction
+
+function! s:StartWithCommand(options, executable, command) abort
+    if ale#command#IsDeferred(a:command)
+        let a:command.result_callback = {
+        \   command -> s:StartWithCommand(a:options, a:executable, command)
+        \}
+
+        return 1
+    endif
+
+    if empty(a:command)
+        return 0
+    endif
+
+    return s:StartLSP(a:options, '', a:executable, a:command)
+endfunction
+
+function! s:StartIfExecutable(options, executable) abort
+    if ale#command#IsDeferred(a:executable)
+        let a:executable.result_callback = {
+        \   executable -> s:StartIfExecutable(a:options, executable)
+        \}
+
+        return 1
+    endif
+
+    if !ale#engine#IsExecutable(a:options.buffer, a:executable)
+        return 0
+    endif
+
+    let l:command = ale#linter#GetCommand(a:options.buffer, a:options.linter)
+
+    return s:StartWithCommand(a:options, a:executable, l:command)
+endfunction
+
+" Given a buffer, an LSP linter, start up an LSP linter and get ready to
+" receive messages for the document.
+function! ale#lsp_linter#StartLSP(buffer, linter, Callback) abort
+    let l:command = ''
+    let l:address = ''
+    let l:root = ale#lsp_linter#FindProjectRoot(a:buffer, a:linter)
+
+    if empty(l:root) && a:linter.lsp isnot# 'tsserver'
+        " If there's no project root, then we can't check files with LSP,
+        " unless we are using tsserver, which doesn't use project roots.
+        return 0
+    endif
+
+    let l:options = {
+    \   'buffer': a:buffer,
+    \   'linter': a:linter,
+    \   'callback': a:Callback,
+    \   'root': l:root,
+    \}
+
+    if a:linter.lsp is# 'socket'
+        let l:address = ale#linter#GetAddress(a:buffer, a:linter)
+
+        return s:StartWithAddress(l:options, l:address)
+    endif
+
+    let l:executable = ale#linter#GetExecutable(a:buffer, a:linter)
+
+    return s:StartIfExecutable(l:options, l:executable)
+endfunction
+
+function! s:CheckWithLSP(linter, details) abort
+    let l:buffer = a:details.buffer
+    let l:info = get(g:ale_buffer_info, l:buffer)
+
+    if empty(l:info)
+        return
+    endif
+
+    let l:id = a:details.connection_id
 
     " Register a callback now for handling errors now.
     let l:Callback = function('ale#lsp_linter#HandleLSPResponse')
@@ -221,26 +374,26 @@ function! ale#lsp_linter#CheckWithLSP(buffer, linter) abort
     let s:lsp_linter_map[l:id] = a:linter.name
 
     if a:linter.lsp is# 'tsserver'
-        let l:message = ale#lsp#tsserver_message#Geterr(a:buffer)
-        let l:notified = ale#lsp#Send(l:id, l:message, l:root) != 0
+        let l:message = ale#lsp#tsserver_message#Geterr(l:buffer)
+        let l:notified = ale#lsp#Send(l:id, l:message) != 0
     else
-        let l:notified = ale#lsp#NotifyForChanges(l:id, l:root, a:buffer)
+        let l:notified = ale#lsp#NotifyForChanges(l:id, l:buffer)
     endif
 
     " If this was a file save event, also notify the server of that.
     if a:linter.lsp isnot# 'tsserver'
-    \&& getbufvar(a:buffer, 'ale_save_event_fired', 0)
-        let l:save_message = ale#lsp#message#DidSave(a:buffer)
-        let l:notified = ale#lsp#Send(l:id, l:save_message, l:root) != 0
+    \&& getbufvar(l:buffer, 'ale_save_event_fired', 0)
+        let l:save_message = ale#lsp#message#DidSave(l:buffer)
+        let l:notified = ale#lsp#Send(l:id, l:save_message) != 0
     endif
 
     if l:notified
-        if index(l:info.active_linter_list, a:linter.name) < 0
-            call add(l:info.active_linter_list, a:linter.name)
-        endif
+        call ale#engine#MarkLinterActive(l:info, a:linter)
     endif
+endfunction
 
-    return l:notified
+function! ale#lsp_linter#CheckWithLSP(buffer, linter) abort
+    return ale#lsp_linter#StartLSP(a:buffer, a:linter, function('s:CheckWithLSP'))
 endfunction
 
 " Clear LSP linter data for the linting engine.

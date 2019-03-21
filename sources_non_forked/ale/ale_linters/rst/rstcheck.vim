@@ -8,6 +8,7 @@ function! ale_linters#rst#rstcheck#Handle(buffer, lines) abort
     let l:pattern = '\v^(.+):(\d*): \(([a-zA-Z]*)/\d*\) (.+)$'
     let l:dir = expand('#' . a:buffer . ':p:h')
     let l:output = []
+
     for l:match in ale#util#GetMatches(a:lines, l:pattern)
         call add(l:output, {
         \   'filename': ale#path#GetAbsPath(l:dir, l:match[1]),
@@ -31,7 +32,7 @@ endfunction
 call ale#linter#Define('rst', {
 \   'name': 'rstcheck',
 \   'executable': 'rstcheck',
-\   'command_callback': 'ale_linters#rst#rstcheck#GetCommand',
+\   'command': function('ale_linters#rst#rstcheck#GetCommand'),
 \   'callback': 'ale_linters#rst#rstcheck#Handle',
 \   'output_stream': 'both',
 \})

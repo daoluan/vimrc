@@ -1,3 +1,7 @@
+" don't spam the user when Vim is started in Vi compatibility mode
+let s:cpo_save = &cpo
+set cpo&vim
+
 function! go#cmd#autowrite() abort
   if &autowrite == 1 || &autowriteall == 1
     silent! wall
@@ -22,24 +26,19 @@ endfunction
 function! go#cmd#Build(bang, ...) abort
   " Create our command arguments. go build discards any results when it
   " compiles multiple packages. So we pass the `errors` package just as an
-  " placeholder with the current folder (indicated with '.'). We also pass -i
-  " that tries to install the dependencies, this has the side effect that it
-  " caches the build results, so every other build is faster.
+  " placeholder with the current folder (indicated with '.').
   let l:args =
         \ ['build', '-tags', go#config#BuildTags()] +
         \ map(copy(a:000), "expand(v:val)") +
         \ [".", "errors"]
 
   " Vim and Neovim async.
-  if go#util#has_job() || has('nvim')
-    if go#config#EchoCommandInfo()
-      call go#util#EchoProgress("building dispatched ...")
-    endif
-
+  if go#util#has_job()
     call s:cmd_job({
           \ 'cmd': ['go'] + args,
           \ 'bang': a:bang,
           \ 'for': 'GoBuild',
+          \ 'statustype': 'build'
           \})
 
   " Vim 7.4 without async
@@ -62,6 +61,7 @@ function! go#cmd#Build(bang, ...) abort
       redraw!
     finally
       execute cd . fnameescape(dir)
+      let &makeprg = default_makeprg
     endtry
 
     let errors = go#list#Get(l:listtype)
@@ -71,8 +71,6 @@ function! go#cmd#Build(bang, ...) abort
     else
       call go#util#EchoSuccess("[build] SUCCESS")
     endif
-
-    let &makeprg = default_makeprg
   endif
 endfunction
 
@@ -168,14 +166,18 @@ function! go#cmd#Run(bang, ...) abort
 
   let l:listtype = go#list#Type("GoRun")
 
-  if l:listtype == "locationlist"
-    exe 'lmake!'
-  else
-    exe 'make!'
-  endif
+  try
+    if l:listtype == "locationlist"
+      exe 'lmake!'
+    else
+      exe 'make!'
+    endif
+  finally
+    let &makeprg = default_makeprg
+  endtry
 
   let items = go#list#Get(l:listtype)
-  let errors = go#tool#FilterValids(items)
+  let errors = go#util#FilterValids(items)
 
   call go#list#Populate(l:listtype, errors, &makeprg)
   call go#list#Window(l:listtype, len(errors))
@@ -183,7 +185,6 @@ function! go#cmd#Run(bang, ...) abort
     call go#list#JumpToFirst(l:listtype)
   endif
 
-  let &makeprg = default_makeprg
 endfunction
 
 " Install installs the package by simple calling 'go install'. If any argument
@@ -195,14 +196,11 @@ function! go#cmd#Install(bang, ...) abort
     " expand all wildcards(i.e: '%' to the current file name)
     let goargs = map(copy(a:000), "expand(v:val)")
 
-    if go#config#EchoCommandInfo()
-      call go#util#EchoProgress("installing dispatched ...")
-    endif
-
     call s:cmd_job({
           \ 'cmd': ['go', 'install', '-tags', go#config#BuildTags()] + goargs,
           \ 'bang': a:bang,
           \ 'for': 'GoInstall',
+          \ 'statustype': 'install'
           \})
     return
   endif
@@ -228,6 +226,7 @@ function! go#cmd#Install(bang, ...) abort
     redraw!
   finally
     execute cd . fnameescape(dir)
+    let &makeprg = default_makeprg
   endtry
 
   let errors = go#list#Get(l:listtype)
@@ -237,8 +236,6 @@ function! go#cmd#Install(bang, ...) abort
   else
     call go#util#EchoSuccess("installed to ". go#path#Default())
   endif
-
-  let &makeprg = default_makeprg
 endfunction
 
 " Generate runs 'go generate' in similar fashion to go#cmd#Build()
@@ -257,12 +254,17 @@ function! go#cmd#Generate(bang, ...) abort
   let l:listtype = go#list#Type("GoGenerate")
 
   echon "vim-go: " | echohl Identifier | echon "generating ..."| echohl None
-  if l:listtype == "locationlist"
-    silent! exe 'lmake!'
-  else
-    silent! exe 'make!'
-  endif
-  redraw!
+
+  try
+    if l:listtype == "locationlist"
+      silent! exe 'lmake!'
+    else
+      silent! exe 'make!'
+    endif
+  finally
+    redraw!
+    let &makeprg = default_makeprg
+  endtry
 
   let errors = go#list#Get(l:listtype)
   call go#list#Window(l:listtype, len(errors))
@@ -274,27 +276,21 @@ function! go#cmd#Generate(bang, ...) abort
     redraws! | echon "vim-go: " | echohl Function | echon "[generate] SUCCESS"| echohl None
   endif
 
-  let &makeprg = default_makeprg
 endfunction
 
 " ---------------------
 " | Vim job callbacks |
 " ---------------------
 
-function s:cmd_job(args) abort
-  let status_dir = expand('%:p:h')
-  let started_at = reltime()
-
-  call go#statusline#Update(status_dir, {
-        \ 'desc': "current status",
-        \ 'type': a:args.cmd[1],
-        \ 'state': "started",
-        \})
-
+function! s:cmd_job(args) abort
   " autowrite is not enabled for jobs
   call go#cmd#autowrite()
 
   call go#job#Spawn(a:args.cmd, a:args)
 endfunction
+
+" restore Vi compatibility settings
+let &cpo = s:cpo_save
+unlet s:cpo_save
 
 " vim: sw=2 ts=2 et

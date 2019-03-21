@@ -3,6 +3,7 @@
 
 function! ale_linters#sml#smlnj_cm#GetCommand(buffer) abort
     let l:cmfile = ale#handlers#sml#GetCmFile(a:buffer)
+
     return 'sml -m ' . l:cmfile . ' < /dev/null'
 endfunction
 
@@ -11,9 +12,9 @@ endfunction
 call ale#linter#Define('sml', {
 \   'name': 'smlnj_cm',
 \   'aliases': ['smlnj-cm'],
-\   'executable_callback': 'ale#handlers#sml#GetExecutableSmlnjCm',
+\   'executable': function('ale#handlers#sml#GetExecutableSmlnjCm'),
 \   'lint_file': 1,
-\   'command_callback': 'ale_linters#sml#smlnj_cm#GetCommand',
+\   'command': function('ale_linters#sml#smlnj_cm#GetCommand'),
 \   'callback': 'ale#handlers#sml#Handle',
 \})
 

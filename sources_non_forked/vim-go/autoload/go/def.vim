@@ -1,3 +1,7 @@
+" don't spam the user when Vim is started in Vi compatibility mode
+let s:cpo_save = &cpo
+set cpo&vim
+
 let s:go_stack = []
 let s:go_stack_level = 0
 
@@ -10,21 +14,18 @@ function! go#def#Jump(mode) abort
   " covers all edge cases, but now anyone can switch to godef if they wish
   let bin_name = go#config#DefMode()
   if bin_name == 'godef'
-    if &modified
-      " Write current unsaved buffer to a temp file and use the modified content
-      let l:tmpname = tempname()
-      call writefile(go#util#GetLines(), l:tmpname)
-      let fname = l:tmpname
-    endif
-
-    let [l:out, l:err] = go#util#Exec(['godef',
+    let l:cmd = ['godef',
           \ '-f=' . l:fname,
           \ '-o=' . go#util#OffsetCursor(),
-          \ '-t'])
-    if exists("l:tmpname")
-      call delete(l:tmpname)
-    endif
+          \ '-t']
 
+    if &modified
+      let l:stdin_content = join(go#util#GetLines(), "\n")
+      call add(l:cmd, "-i")
+      let [l:out, l:err] = go#util#ExecInDir(l:cmd, l:stdin_content)
+    else
+      let [l:out, l:err] = go#util#ExecInDir(l:cmd)
+    endif
   elseif bin_name == 'guru'
     let cmd = [go#path#CheckBinPath(bin_name)]
     let buildtags = go#config#BuildTags()
@@ -35,7 +36,7 @@ function! go#def#Jump(mode) abort
     let stdin_content = ""
 
     if &modified
-      let content  = join(go#util#GetLines(), "\n")
+      let content = join(go#util#GetLines(), "\n")
       let stdin_content = fname . "\n" . strlen(content) . "\n" . content
       call add(cmd, "-modified")
     endif
@@ -43,25 +44,26 @@ function! go#def#Jump(mode) abort
     call extend(cmd, ["definition", fname . ':#' . go#util#OffsetCursor()])
 
     if go#util#has_job()
+      let l:state = {}
       let l:spawn_args = {
             \ 'cmd': cmd,
-            \ 'complete': function('s:jump_to_declaration_cb', [a:mode, bin_name]),
+            \ 'complete': function('s:jump_to_declaration_cb', [a:mode, bin_name], l:state),
+            \ 'for': '_',
+            \ 'statustype': 'searching declaration',
             \ }
 
       if &modified
         let l:spawn_args.input = stdin_content
       endif
 
-      call go#util#EchoProgress("searching declaration ...")
-
-      call s:def_job(spawn_args)
+      call s:def_job(spawn_args, l:state)
       return
     endif
 
     if &modified
-      let [l:out, l:err] = go#util#Exec(l:cmd, stdin_content)
+      let [l:out, l:err] = go#util#ExecInDir(l:cmd, l:stdin_content)
     else
-      let [l:out, l:err] = go#util#Exec(l:cmd)
+      let [l:out, l:err] = go#util#ExecInDir(l:cmd)
     endif
   else
     call go#util#EchoError('go_def_mode value: '. bin_name .' is not valid. Valid values are: [godef, guru]')
@@ -76,13 +78,16 @@ function! go#def#Jump(mode) abort
   call go#def#jump_to_declaration(out, a:mode, bin_name)
 endfunction
 
-function! s:jump_to_declaration_cb(mode, bin_name, job, exit_status, data) abort
+function! s:jump_to_declaration_cb(mode, bin_name, job, exit_status, data) abort dict
   if a:exit_status != 0
     return
   endif
 
   call go#def#jump_to_declaration(a:data[0], a:mode, a:bin_name)
-  call go#util#EchoSuccess(fnamemodify(a:data[0], ":t"))
+
+  " capture the active window so that after the exit_cb and close_cb callbacks
+  " can return to it when a:mode caused a split.
+  let self.winid = win_getid(winnr())
 endfunction
 
 function! go#def#jump_to_declaration(out, mode, bin_name) abort
@@ -101,10 +106,24 @@ function! go#def#jump_to_declaration(out, mode, bin_name) abort
     let parts = split(out, ':')
   endif
 
+  if len(parts) == 0
+    call go#util#EchoError('go jump_to_declaration '. a:bin_name .' output is not valid.')
+    return
+  endif
+
+  let line = 1
+  let col = 1
+  let ident = 0
   let filename = parts[0]
-  let line = parts[1]
-  let col = parts[2]
-  let ident = parts[3]
+  if len(parts) > 1
+    let line = parts[1]
+  endif
+  if len(parts) > 2
+    let col = parts[2]
+  endif
+  if len(parts) > 3
+    let ident = parts[3]
+  endif
 
   " Remove anything newer than the current position, just like basic
   " vim tag support
@@ -282,8 +301,25 @@ function! go#def#Stack(...) abort
   endif
 endfunction
 
-function s:def_job(args) abort
+function s:def_job(args, state) abort
   let l:start_options = go#job#Options(a:args)
+
+  let l:state = a:state
+  function! s:exit_cb(next, job, exitval) dict
+    call call(a:next, [a:job, a:exitval])
+    if has_key(self, 'winid')
+      call win_gotoid(self.winid)
+    endif
+  endfunction
+  let l:start_options.exit_cb = funcref('s:exit_cb', [l:start_options.exit_cb], l:state)
+
+  function! s:close_cb(next, ch) dict
+    call call(a:next, [a:ch])
+    if has_key(self, 'winid')
+      call win_gotoid(self.winid)
+    endif
+  endfunction
+  let l:start_options.close_cb = funcref('s:close_cb', [l:start_options.close_cb], l:state)
 
   if &modified
     let l:tmpname = tempname()
@@ -292,7 +328,11 @@ function s:def_job(args) abort
     let l:start_options.in_name = l:tmpname
   endif
 
-  call go#job#Start(a:args.cmd, start_options)
+  call go#job#Start(a:args.cmd, l:start_options)
 endfunction
+
+" restore Vi compatibility settings
+let &cpo = s:cpo_save
+unlet s:cpo_save
 
 " vim: sw=2 ts=2 et

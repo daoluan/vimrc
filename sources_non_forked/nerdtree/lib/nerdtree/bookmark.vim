@@ -156,6 +156,13 @@ function! s:Bookmark.delete()
     call s:Bookmark.Write()
 endfunction
 
+" FUNCTION: s:Edit() {{{1
+" opens the NERDTreeBookmarks file for manual editing
+function! s:Bookmark.Edit()
+    execute "wincmd w"
+    execute "edit ".g:NERDTreeBookmarksFile
+endfunction
+
 " FUNCTION: Bookmark.getNode(nerdtree, searchFromAbsoluteRoot) {{{1
 " Returns the tree node object associated with this Bookmark.
 " Throws "NERDTree.BookmarkedNodeNotFoundError" if the node is not found.
@@ -248,6 +255,10 @@ endfunction
 "
 function! s:Bookmark.open(nerdtree, ...)
     let opts = a:0 ? a:1 : {}
+
+    if and(g:NERDTreeQuitOnOpen,2)
+        call a:nerdtree.ui.toggleShowBookmarks()
+    endif
 
     if self.path.isDirectory && !has_key(opts, 'where')
         call self.toRoot(a:nerdtree)
@@ -343,7 +354,12 @@ function! s:Bookmark.Write()
     for j in s:Bookmark.InvalidBookmarks()
         call add(bookmarkStrings, j)
     endfor
-    call writefile(bookmarkStrings, g:NERDTreeBookmarksFile)
+
+    try
+        call writefile(bookmarkStrings, g:NERDTreeBookmarksFile)
+    catch
+        call nerdtree#echoError("Failed to write bookmarks file. Make sure g:NERDTreeBookmarksFile points to a valid location.")
+    endtry
 endfunction
 
 " vim: set sw=4 sts=4 et fdm=marker:

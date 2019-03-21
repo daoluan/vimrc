@@ -1,3 +1,7 @@
+" don't spam the user when Vim is started in Vi compatibility mode
+let s:cpo_save = &cpo
+set cpo&vim
+
 let s:toggle = 0
 
 " Buffer creates a new cover profile with 'go test -coverprofile' and changes
@@ -44,11 +48,7 @@ function! go#coverage#Buffer(bang, ...) abort
   let s:toggle = 1
   let l:tmpname = tempname()
 
-  if go#config#EchoCommandInfo()
-    call go#util#EchoProgress("testing...")
-  endif
-
-  if go#util#has_job() || has('nvim')
+  if go#util#has_job()
     call s:coverage_job({
           \ 'cmd': ['go', 'test', '-tags', go#config#BuildTags(), '-coverprofile', l:tmpname] + a:000,
           \ 'complete': function('s:coverage_callback', [l:tmpname]),
@@ -57,6 +57,10 @@ function! go#coverage#Buffer(bang, ...) abort
           \ 'statustype': 'coverage',
           \ })
     return
+  endif
+
+  if go#config#EchoCommandInfo()
+    call go#util#EchoProgress("testing...")
   endif
 
   let args = [a:bang, 0, "-coverprofile", l:tmpname]
@@ -81,7 +85,7 @@ function! go#coverage#Clear() abort
 
   " remove the autocmd we defined
   augroup vim-go-coverage
-    autocmd!
+    autocmd! * <buffer>
   augroup end
 endfunction
 
@@ -89,12 +93,13 @@ endfunction
 " a new HTML coverage page from that profile in a new browser
 function! go#coverage#Browser(bang, ...) abort
   let l:tmpname = tempname()
-  if go#util#has_job() || has('nvim')
+  if go#util#has_job()
     call s:coverage_job({
           \ 'cmd': ['go', 'test', '-tags', go#config#BuildTags(), '-coverprofile', l:tmpname],
           \ 'complete': function('s:coverage_browser_callback', [l:tmpname]),
           \ 'bang': a:bang,
           \ 'for': 'GoTest',
+          \ 'statustype': 'coverage',
           \ })
     return
   endif
@@ -107,7 +112,7 @@ function! go#coverage#Browser(bang, ...) abort
   let id = call('go#test#Test', args)
 
   if go#util#ShellError() == 0
-    call go#tool#ExecuteInDir(['go', 'tool', 'cover', '-html=' . l:tmpname])
+    call go#util#ExecInDir(['go', 'tool', 'cover', '-html=' . l:tmpname])
   endif
 
   call delete(l:tmpname)
@@ -237,7 +242,7 @@ function! go#coverage#overlay(file) abort
 
   " clear the matches if we leave the buffer
   augroup vim-go-coverage
-    autocmd!
+    autocmd! * <buffer>
     autocmd BufWinLeave <buffer> call go#coverage#Clear()
   augroup end
 
@@ -279,10 +284,14 @@ endfunction
 
 function! s:coverage_browser_callback(coverfile, job, exit_status, data)
   if a:exit_status == 0
-    call go#tool#ExecuteInDir(['go', 'tool', 'cover', '-html=' . a:coverfile])
+    call go#util#ExecInDir(['go', 'tool', 'cover', '-html=' . a:coverfile])
   endif
 
   call delete(a:coverfile)
 endfunction
+
+" restore Vi compatibility settings
+let &cpo = s:cpo_save
+unlet s:cpo_save
 
 " vim: sw=2 ts=2 et

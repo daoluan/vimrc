@@ -82,16 +82,18 @@ endfunction
 
 function! ale_linters#dockerfile#hadolint#GetCommand(buffer) abort
     let l:command = ale_linters#dockerfile#hadolint#GetExecutable(a:buffer)
+
     if l:command is# 'docker'
         return 'docker run --rm -i ' . ale#Var(a:buffer, 'dockerfile_hadolint_docker_image')
     endif
+
     return 'hadolint -'
 endfunction
 
 
 call ale#linter#Define('dockerfile', {
 \   'name': 'hadolint',
-\   'executable_callback': 'ale_linters#dockerfile#hadolint#GetExecutable',
-\   'command_callback': 'ale_linters#dockerfile#hadolint#GetCommand',
+\   'executable': function('ale_linters#dockerfile#hadolint#GetExecutable'),
+\   'command': function('ale_linters#dockerfile#hadolint#GetCommand'),
 \   'callback': 'ale_linters#dockerfile#hadolint#Handle',
 \})

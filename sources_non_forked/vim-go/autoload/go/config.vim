@@ -1,3 +1,7 @@
+" don't spam the user when Vim is started in Vi compatibility mode
+let s:cpo_save = &cpo
+set cpo&vim
+
 function! go#config#AutodetectGopath() abort
 	return get(g:, 'go_autodetect_gopath', 0)
 endfunction
@@ -148,8 +152,8 @@ function! go#config#GocodeProposeBuiltins() abort
   return get(g:, 'go_gocode_propose_builtins', 1)
 endfunction
 
-function! go#config#GocodeAutobuild() abort
-  return get(g:, 'go_gocode_autobuild', 1)
+function! go#config#GocodeProposeSource() abort
+  return get(g:, 'go_gocode_propose_source', 0)
 endfunction
 
 function! go#config#EchoCommandInfo() abort
@@ -202,7 +206,7 @@ endfunction
 
 function! go#config#DebugCommands() abort
   " make sure g:go_debug_commands is set so that it can be added to easily.
-  let g:go_debug_commands = get(g:, 'go_debug_commands', {})
+  let g:go_debug_commands = get(g:, 'go_debug_commands', [])
   return g:go_debug_commands
 endfunction
 
@@ -282,6 +286,14 @@ function! go#config#SetAsmfmtAutosave(value) abort
   let g:go_asmfmt_autosave = a:value
 endfunction
 
+function! go#config#ModFmtAutosave() abort
+	return get(g:, "go_mod_fmt_autosave", 1)
+endfunction
+
+function! go#config#SetModFmtAutosave(value) abort
+  let g:go_mod_fmt_autosave = a:value
+endfunction
+
 function! go#config#DocMaxHeight() abort
   return get(g:, "go_doc_max_height", 20)
 endfunction
@@ -300,10 +312,6 @@ endfunction
 
 function! go#config#DeclsMode() abort
   return get(g:, "go_decls_mode", "")
-endfunction
-
-function! go#config#DocCommand() abort
-  return get(g:, "go_doc_command", ["godoc"])
 endfunction
 
 function! go#config#FmtCommand() abort
@@ -348,6 +356,10 @@ function! go#config#BinPath() abort
   return get(g:, "go_bin_path", "")
 endfunction
 
+function! go#config#SearchBinPathFirst() abort
+  return get(g:, 'go_search_bin_path_first', 1)
+endfunction
+
 function! go#config#HighlightArrayWhitespaceError() abort
   return get(g:, 'go_highlight_array_whitespace_error', 0)
 endfunction
@@ -376,8 +388,9 @@ function! go#config#HighlightFunctions() abort
   return get(g:, 'go_highlight_functions', 0)
 endfunction
 
-function! go#config#HighlightFunctionArguments() abort
-  return get(g:, 'go_highlight_function_arguments', 0)
+function! go#config#HighlightFunctionParameters() abort
+  " fallback to highlight_function_arguments for backwards compatibility
+  return get(g:, 'go_highlight_function_parameters', get(g:, 'go_highlight_function_arguments', 0))
 endfunction
 
 function! go#config#HighlightFunctionCalls() abort
@@ -416,17 +429,30 @@ function! go#config#HighlightVariableDeclarations() abort
   return get(g:, 'go_highlight_variable_declarations', 0)
 endfunction
 
-function go#config#FoldEnable(...) abort
+function! go#config#HighlightDebug() abort
+  return get(g:, 'go_highlight_debug', 1)
+endfunction
+
+function! go#config#FoldEnable(...) abort
   if a:0 > 0
     return index(go#config#FoldEnable(), a:1) > -1
   endif
   return get(g:, 'go_fold_enable', ['block', 'import', 'varconst', 'package_comment'])
 endfunction
 
+function! go#config#EchoGoInfo() abort
+  return get(g:, "go_echo_go_info", 1)
+endfunction
+
+
 " Set the default value. A value of "1" is a shortcut for this, for
 " compatibility reasons.
 if exists("g:go_gorename_prefill") && g:go_gorename_prefill == 1
   unlet g:go_gorename_prefill
 endif
+
+" restore Vi compatibility settings
+let &cpo = s:cpo_save
+unlet s:cpo_save
 
 " vim: sw=2 ts=2 et
