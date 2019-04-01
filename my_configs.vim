@@ -146,6 +146,7 @@ let g:UltiSnipsJumpBackwardTrigger = '<C-k>'
 let g:email="g.daoluan@gmail.com"
 
 let g:ycm_python_binary_path = '/usr/local/bin/python3'
+let g:ycm_server_python_interpreter = 'python3'
 
 set nu
 
@@ -159,4 +160,5 @@ autocmd BufWritePost *.css :call CSSBeautify()
 " set js indent
 autocmd BufNewFile,BufRead *.js :setl sw=2 sts=2 et
 
-" let g:vim_markdown_folding_disabled = 1
+let g:vim_markdown_folding_disabled = 1
+set cursorline
