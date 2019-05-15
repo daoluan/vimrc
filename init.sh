@@ -19,10 +19,15 @@ cd ~/.vim_runtime/sources_non_forked/YouCompleteMe/third_party/
 wget http://releases.llvm.org/6.0.0/clang+llvm-6.0.0-x86_64-linux-gnu-ubuntu-16.04.tar.xz
 xz -d clang+llvm-6.0.0-x86_64-linux-gnu-ubuntu-16.04.tar.xz
 tar xvf clang+llvm-6.0.0-x86_64-linux-gnu-ubuntu-16.04.tar
+cd ~/.vim_runtime/sources_non_forked/YouCompleteMe/
+apt install cmake
+./install.py --clang-completer --go-completer
+
 
 echo 'export PATH=$PATH:~/.vim_runtime/sources_non_forked/YouCompleteMe/third_party/clang+llvm-6.0.0-x86_64-linux-gnu-ubuntu-16.04/bin/' >> ~/.zshrc
 
 # upgrade vim to 8.x
+apt install software-properties-common
 add-apt-repository ppa:jonathonf/vim
 apt update
 apt install vim

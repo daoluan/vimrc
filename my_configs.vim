@@ -67,6 +67,7 @@ autocmd FileType c,cc,cpp  map <buffer> <leader><space> :w<cr>:make<cr>
 nmap <leader>cn :cn<cr>
 nmap <leader>cp :cp<cr>
 nmap <leader>cw :cw<cr>
+nmap <leader>t :terminal<cr>
 
 let g:go_highlight_functions = 1
 let g:go_highlight_methods = 1
@@ -82,7 +83,7 @@ let g:go_fmt_command = "goimports"
 vnoremap // y/<C-R>"<CR>N
 let g:clang_format#code_style = "google"
 let g:clang_format#style_options = {"IndentWidth":2}
-let g:clang_format#auto_format = 1
+" let g:clang_format#auto_format = 1
 autocmd FileType cpp setlocal omnifunc=libclang#Complete
 autocmd FileType c setlocal omnifunc=libclang#Complete
 autocmd FileType cpp ClangFormatAutoEnable
@@ -145,20 +146,21 @@ let g:UltiSnipsJumpForwardTrigger = '<C-j>'
 let g:UltiSnipsJumpBackwardTrigger = '<C-k>'
 let g:email="g.daoluan@gmail.com"
 
-let g:ycm_python_binary_path = '/usr/local/bin/python3'
+let g:ycm_python_binary_path = '/usr/bin/python3'
 let g:ycm_server_python_interpreter = 'python3'
 
 set nu
 
 " js beautify
-autocmd BufWritePost *.js :call JsBeautify() 
-autocmd BufWritePost *.json :call JsonBeautify() 
-autocmd BufWritePost *.jsx :call JsxBeautify() 
-autocmd BufWritePost *.html :call HtmlBeautify() 
-autocmd BufWritePost *.css :call CSSBeautify() 
+" autocmd BufWritePost *.js :call JsBeautify() 
+" autocmd BufWritePost *.json :call JsonBeautify() 
+" autocmd BufWritePost *.jsx :call JsxBeautify() 
+" autocmd BufWritePost *.html :call HtmlBeautify() 
+" autocmd BufWritePost *.css :call CSSBeautify() 
 
 " set js indent
-autocmd BufNewFile,BufRead *.js :setl sw=2 sts=2 et
+" autocmd BufNewFile,BufRead *.js :setl sw=2 sts=2 et
 
 let g:vim_markdown_folding_disabled = 1
 set cursorline
+let g:loaded_comfortable_motion = 1
