@@ -19,3 +19,6 @@
 [submodule "sources_non_forked/vim-jsbeautify"]
 	path = sources_non_forked/vim-jsbeautify
 	url = https://github.com/maksimr/vim-jsbeautify.git
+[submodule "https://github.com/fisadev/vim-isort"]
+    path = sources_non_forked/vim-isort
+    url = https://github.com/fisadev/vim-isort
