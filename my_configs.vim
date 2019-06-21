@@ -163,3 +163,14 @@ autocmd BufNewFile,BufRead *.js :setl sw=2 sts=2 et
 let g:vim_markdown_folding_disabled = 1
 set cursorline
 map <leader>t :terminal<cr>
+
+let g:tagbar_type_go = {
+    \ 'ctagstype': 'go',
+    \ 'kinds' : [
+        \'p:package',
+        \'v:variables',
+        \'t:type',
+        \'c:const',
+        \'f:function',
+    \]
+\}
