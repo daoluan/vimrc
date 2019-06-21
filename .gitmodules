@@ -22,3 +22,9 @@
 [submodule "https://github.com/fisadev/vim-isort"]
     path = sources_non_forked/vim-isort
     url = https://github.com/fisadev/vim-isort
+[submodule "sources_non_forked/vim-go"]
+	path = sources_non_forked/vim-go
+	url = https://github.com/fatih/vim-go.git
+[submodule "sources_non_forked/tagbar"]
+	path = sources_non_forked/tagbar
+	url = https://github.com/majutsushi/tagbar.git
