@@ -68,14 +68,6 @@ nmap <leader>cn :cn<cr>
 nmap <leader>cp :cp<cr>
 nmap <leader>cw :cw<cr>
 
-let g:go_highlight_functions = 1
-let g:go_highlight_methods = 1
-let g:go_highlight_structs = 1
-let g:go_highlight_interfaces = 1
-let g:go_highlight_operators = 1
-let g:go_highlight_build_constraints = 1
-let g:go_fmt_command = "goimports"
-
 " Search for visually selected text
 " http://vim.wikia.com/wiki/Search_for_visually_selected_text
 " select the text visually and press '//'
@@ -125,7 +117,6 @@ let g:ycm_max_num_candidates = 10
 " solve confilict in vim-surround and vim-yankstack
 call yankstack#setup()
 
-" let g:go_fmt_command = "goimports"
 let g:go_autodetect_gopath = 1
 let g:go_list_type = "quickfix"
 
@@ -139,6 +130,14 @@ let g:go_highlight_generate_tags = 1
 let g:pymode_rope = 0
 let g:pymode_folding=0
 
+let g:go_highlight_functions = 1
+let g:go_highlight_methods = 1
+let g:go_highlight_structs = 1
+let g:go_highlight_interfaces = 1
+let g:go_highlight_operators = 1
+let g:go_highlight_build_constraints = 1
+let g:go_fmt_command = "goimports"
+
 " ultisnips config
 let g:UltiSnipsExpandTrigger = '<C-j>'
 let g:UltiSnipsJumpForwardTrigger = '<C-j>'
@@ -151,14 +150,15 @@ let g:ycm_server_python_interpreter = 'python3'
 set nu
 
 " js beautify
-autocmd BufWritePost *.js :call JsBeautify() 
-autocmd BufWritePost *.json :call JsonBeautify() 
-autocmd BufWritePost *.jsx :call JsxBeautify() 
-autocmd BufWritePost *.html :call HtmlBeautify() 
-autocmd BufWritePost *.css :call CSSBeautify() 
+" autocmd BufWritePost *.js :call JsBeautify() 
+" autocmd BufWritePost *.json :call JsonBeautify() 
+" autocmd BufWritePost *.jsx :call JsxBeautify() 
+" autocmd BufWritePost *.html :call HtmlBeautify() 
+" autocmd BufWritePost *.css :call CSSBeautify() 
 
 " set js indent
 autocmd BufNewFile,BufRead *.js :setl sw=2 sts=2 et
 
 let g:vim_markdown_folding_disabled = 1
 set cursorline
+map <leader>t :terminal<cr>
