@@ -96,8 +96,6 @@ autocmd BufWritePost *.py Autopep8
 "打开vim时不再询问是否加载ycm_extra_conf.py配置"
 "let g:ycm_confirm_extra_conf=0
 "set completeopt=longest,menu
-""python解释器路径"
-let g:ycm_path_to_python_interpreter='/usr/bin/python'
 "是否开启语义补全"
 "let g:ycm_seed_identifiers_with_syntax=1
 ""是否在注释中也开启补全"
@@ -147,6 +145,11 @@ let g:email="g.daoluan@gmail.com"
 
 let g:ycm_python_binary_path = '/usr/local/bin/python3'
 let g:ycm_server_python_interpreter = 'python3'
+
+" Let clangd fully control code completion
+let g:ycm_clangd_uses_ycmd_caching = 0
+" Use installed clangd, not YCM-bundled clangd which doesn't get updates.
+let g:ycm_clangd_args = ['-log=verbose', '-pretty', '-background-index', '-all-scopes-completion']
 
 set nu
 
