@@ -28,3 +28,6 @@
 [submodule "sources_non_forked/tagbar"]
 	path = sources_non_forked/tagbar
 	url = https://github.com/majutsushi/tagbar.git
+[submodule "sources_non_forked/awk.vim"]
+	path = sources_non_forked/awk.vim
+	url = https://github.com/vim-scripts/awk.vim.git
