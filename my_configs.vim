@@ -86,7 +86,7 @@ autocmd FileType python setlocal omnifunc=pythoncomplete#Complete
 " path to your ycm_extra_conf
 let g:ycm_global_ycm_extra_conf = '~/.vim_runtime/sources_non_forked/YouCompleteMe/third_party/ycmd/.ycm_extra_conf.py'
 let g:ycm_show_diagnostics_ui = 0
-nnoremap <leader>gd :YcmCompleter GoToDeclaration<CR> 
+nnoremap gd :YcmCompleter GoToDeclaration<CR> 
 
 " autopep8
 let g:autopep8_disable_show_diff=1
@@ -100,7 +100,7 @@ autocmd BufWritePost *.py Autopep8
 "let g:ycm_seed_identifiers_with_syntax=1
 ""是否在注释中也开启补全"
 " let g:ycm_complete_in_comments=1
-let g:ycm_collect_identifiers_from_comments_and_strings = 0
+" let g:ycm_collect_identifiers_from_comments_and_strings = 0
 "开始补全的字符数"
 let g:ycm_min_num_of_chars_for_completion=0
 ""补全后自动关机预览窗口"
@@ -143,7 +143,7 @@ let g:UltiSnipsJumpForwardTrigger = '<C-j>'
 let g:UltiSnipsJumpBackwardTrigger = '<C-k>'
 let g:email="g.daoluan@gmail.com"
 
-let g:ycm_python_binary_path = '/usr/local/bin/python3'
+let g:ycm_python_binary_path = 'python3'
 let g:ycm_server_python_interpreter = 'python3'
 
 " Let clangd fully control code completion
