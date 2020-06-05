@@ -142,6 +142,7 @@ let g:UltiSnipsExpandTrigger = '<C-j>'
 let g:UltiSnipsJumpForwardTrigger = '<C-j>'
 let g:UltiSnipsJumpBackwardTrigger = '<C-k>'
 let g:email="g.daoluan@gmail.com"
+let g:user="dylanzheng"
 
 let g:ycm_python_binary_path = 'python3'
 let g:ycm_server_python_interpreter = 'python3'
