@@ -4,13 +4,25 @@
 
 priority -50
 
-snippet fn "pub fn name(?) -> ? {}"
+snippet fn "fn name(?) -> ? {}"
 fn ${1:function_name}($2)${3/..*/ -> /}$3 {
 	${VISUAL}$0
 }
 endsnippet
 
 snippet pfn "pub fn name(?) -> ? {}"
+pub fn ${1:function_name}($2)${3/..*/ -> /}$3 {
+	${VISUAL}$0
+}
+endsnippet
+
+snippet afn "async fn name(?) -> ? {}"
+fn ${1:function_name}($2)${3/..*/ -> /}$3 {
+	${VISUAL}$0
+}
+endsnippet
+
+snippet pafn "pub async fn name(?) -> ? {}"
 pub fn ${1:function_name}($2)${3/..*/ -> /}$3 {
 	${VISUAL}$0
 }

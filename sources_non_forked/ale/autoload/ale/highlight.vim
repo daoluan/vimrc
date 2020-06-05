@@ -26,39 +26,23 @@ endif
 let s:MAX_POS_VALUES = 8
 let s:MAX_COL_SIZE = 1073741824 " pow(2, 30)
 
-" Check if we have neovim's buffer highlight API
-"
-" Below we define some functions' implementation conditionally if this API
-" exists or not.
-"
-" The API itself is more ergonomic and neovim performs highlights positions
-" rebases during edits so we see less stalled highlights.
-let s:nvim_api = exists('*nvim_buf_add_highlight') && exists('*nvim_buf_clear_namespace')
+let s:has_nvim_highlight = exists('*nvim_buf_add_highlight') && exists('*nvim_buf_clear_namespace')
 
-function! ale#highlight#HasNeovimApi() abort
-    return s:nvim_api
+if s:has_nvim_highlight
+    let s:ns_id = nvim_create_namespace('ale_highlight')
+endif
+
+" Wrappers are necessary to test this functionality by faking the calls in tests.
+function! ale#highlight#nvim_buf_add_highlight(buffer, ns_id, hl_group, line, col_start, col_end) abort
+    " Ignore all errors for adding highlights.
+    try
+        call nvim_buf_add_highlight(a:buffer, a:ns_id, a:hl_group, a:line, a:col_start, a:col_end)
+    catch
+    endtry
 endfunction
 
-function! ale#highlight#nvim_buf_clear_namespace(...) abort
-    return call('nvim_buf_clear_namespace', a:000)
-endfunction
-
-function! ale#highlight#nvim_buf_add_highlight(...) abort
-    return call('nvim_buf_add_highlight', a:000)
-endfunction
-
-function! s:ale_nvim_highlight_id(bufnr) abort
-    let l:id = getbufvar(a:bufnr, 'ale_nvim_highlight_id', -1)
-
-    if l:id is -1
-        " NOTE: This will highlight nothing but will allocate new id
-        let l:id = ale#highlight#nvim_buf_add_highlight(
-        \   a:bufnr, 0, '', 0, 0, -1
-        \)
-        call setbufvar(a:bufnr, 'ale_nvim_highlight_id', l:id)
-    endif
-
-    return l:id
+function! ale#highlight#nvim_buf_clear_namespace(buffer, ns_id, line_start, line_end) abort
+    call nvim_buf_clear_namespace(a:buffer, a:ns_id, a:line_start, a:line_end)
 endfunction
 
 function! ale#highlight#CreatePositions(line, col, end_line, end_col) abort
@@ -86,88 +70,67 @@ endfunction
 " except these which have matching loclist item entries.
 
 function! ale#highlight#RemoveHighlights() abort
-    if ale#highlight#HasNeovimApi()
-        if get(b:, 'ale_nvim_highlight_id', 0)
-            let l:bufnr = bufnr('%')
-            " NOTE: 0, -1 means from 0 line till the end of buffer
-            call ale#highlight#nvim_buf_clear_namespace(
-            \   l:bufnr,
-            \   b:ale_nvim_highlight_id,
-            \   0, -1
-            \)
-        endif
+    if s:has_nvim_highlight
+        call ale#highlight#nvim_buf_clear_namespace(bufnr(''), s:ns_id, 0, -1)
     else
         for l:match in getmatches()
-            if l:match.group =~# '^ALE'
+            if l:match.group =~? '\v^ALE(Style)?(Error|Warning|Info)(Line)?$'
                 call matchdelete(l:match.id)
             endif
         endfor
     endif
 endfunction
 
-function! s:highlight_line(bufnr, lnum, group) abort
-    if ale#highlight#HasNeovimApi()
-        let l:highlight_id = s:ale_nvim_highlight_id(a:bufnr)
-        call ale#highlight#nvim_buf_add_highlight(
-        \   a:bufnr, l:highlight_id, a:group,
-        \   a:lnum - 1, 0, -1
-        \)
+" Same semantics of matchaddpos but will use nvim_buf_add_highlight if
+" available. This involves iterating over the position list, switching from
+" 1-based indexing to 0-based indexing, and translating the multiple ways
+" that position can be specified for matchaddpos into line + col_start +
+" col_end.
+function! s:matchaddpos(group, pos_list) abort
+    if s:has_nvim_highlight
+        for l:pos in a:pos_list
+            let l:line = type(l:pos) == v:t_number
+            \   ? l:pos - 1
+            \   : l:pos[0] - 1
+
+            if type(l:pos) == v:t_number || len(l:pos) == 1
+                let l:col_start = 0
+                let l:col_end = s:MAX_COL_SIZE
+            else
+                let l:col_start = l:pos[1] - 1
+                let l:col_end = l:col_start + get(l:pos, 2, 1)
+            endif
+
+            call ale#highlight#nvim_buf_add_highlight(
+            \   bufnr(''),
+            \   s:ns_id,
+            \   a:group,
+            \   l:line,
+            \   l:col_start,
+            \   l:col_end,
+            \)
+        endfor
     else
-        call matchaddpos(a:group, [a:lnum])
+        call matchaddpos(a:group, a:pos_list)
     endif
 endfunction
 
+function! s:highlight_line(bufnr, lnum, group) abort
+    call s:matchaddpos(a:group, [a:lnum])
+endfunction
+
 function! s:highlight_range(bufnr, range, group) abort
-    if ale#highlight#HasNeovimApi()
-        let l:highlight_id = s:ale_nvim_highlight_id(a:bufnr)
-        " NOTE: lines and columns indicies are 0-based in nvim_buf_* API.
-        let l:lnum = a:range.lnum - 1
-        let l:end_lnum = a:range.end_lnum - 1
-        let l:col = a:range.col - 1
-        let l:end_col = a:range.end_col
-
-        if l:lnum >= l:end_lnum
-            " For single lines, just return the one position.
-            call ale#highlight#nvim_buf_add_highlight(
-            \   a:bufnr, l:highlight_id, a:group,
-            \   l:lnum, l:col, l:end_col
-            \)
-        else
-            " highlight first line from start till the line end
-            call ale#highlight#nvim_buf_add_highlight(
-            \   a:bufnr, l:highlight_id, a:group,
-            \   l:lnum, l:col, -1
-            \)
-
-            " highlight all lines between the first and last entirely
-            let l:cur = l:lnum + 1
-
-            while l:cur < l:end_lnum
-                call ale#highlight#nvim_buf_add_highlight(
-                \   a:bufnr, l:highlight_id, a:group,
-                \   l:cur, 0, -1
-                \   )
-                let l:cur += 1
-            endwhile
-
-            call ale#highlight#nvim_buf_add_highlight(
-            \   a:bufnr, l:highlight_id, a:group,
-            \   l:end_lnum, 0, l:end_col
-            \)
-        endif
-    else
-        " Set all of the positions, which are chunked into Lists which
-        " are as large as will be accepted by matchaddpos.
-        call map(
-        \   ale#highlight#CreatePositions(
-        \       a:range.lnum,
-        \       a:range.col,
-        \       a:range.end_lnum,
-        \       a:range.end_col
-        \   ),
-        \   'matchaddpos(a:group, v:val)'
-        \)
-    endif
+    " Set all of the positions, which are chunked into Lists which
+    " are as large as will be accepted by matchaddpos.
+    call map(
+    \   ale#highlight#CreatePositions(
+    \       a:range.lnum,
+    \       a:range.col,
+    \       a:range.end_lnum,
+    \       a:range.end_col
+    \   ),
+    \   's:matchaddpos(a:group, v:val)'
+    \)
 endfunction
 
 function! ale#highlight#UpdateHighlights() abort
@@ -246,6 +209,12 @@ function! ale#highlight#SetHighlights(buffer, loclist) abort
 
     " Set the list in the buffer variable.
     call setbufvar(str2nr(a:buffer), 'ale_highlight_items', l:new_list)
+
+    let l:exclude_list = ale#Var(a:buffer, 'exclude_highlights')
+
+    if !empty(l:exclude_list)
+        call filter(l:new_list, 'empty(ale#util#GetMatches(v:val.text, l:exclude_list))')
+    endif
 
     " Update highlights for the current buffer, which may or may not
     " be the buffer we just set highlights for.
