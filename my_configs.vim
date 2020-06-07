@@ -61,8 +61,9 @@ autocmd FileType c,cpp,java,py,cc,h autocmd BufWritePre <buffer> :call <SID>Stri
 " set shiftwidth=2
 " set tabstop=2
 
-highlight OverLength ctermbg=red ctermfg=white guibg=#592929
-match OverLength /\%81v.\+/
+" 单行字符个数溢出显示红色
+" highlight OverLength ctermbg=red ctermfg=white guibg=#592929
+" match OverLength /\%81v.\+/
 
 autocmd FileType c,cc,cpp  map <buffer> <leader><space> :w<cr>:make<cr>
 nmap <leader>cn :cn<cr>
