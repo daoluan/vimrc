@@ -26,7 +26,12 @@ endif
 
 if !exists('g:ruby_indent_block_style')
   " Possible values: "expression", "do"
-  let g:ruby_indent_block_style = 'expression'
+  let g:ruby_indent_block_style = 'do'
+endif
+
+if !exists('g:ruby_indent_hanging_elements')
+  " Non-zero means hanging indents are enabled, zero means disabled
+  let g:ruby_indent_hanging_elements = 1
 endif
 
 setlocal nosmartindent
@@ -84,6 +89,9 @@ let s:ruby_indent_keywords =
       \ '\|\%([=,*/%+-]\|<<\|>>\|:\s\)\s*\zs' .
       \    '\<\%(if\|for\|while\|until\|case\|unless\|begin\):\@!\>'
 
+" Def without an end clause: def method_call(...) = <expression>
+let s:ruby_endless_def = '\<def\s\+\k\+[!?]\=\%((.*)\|\s\)\s*='
+
 " Regex used for words that, at the start of a line, remove a level of indent.
 let s:ruby_deindent_keywords =
       \ '^\s*\zs\<\%(ensure\|else\|rescue\|elsif\|when\|end\):\@!\>'
@@ -103,10 +111,26 @@ let s:end_middle_regex = '\<\%(ensure\|else\|\%(\%(^\|;\)\s*\)\@<=\<rescue:\@!\>
 " Regex that defines the end-match for the 'end' keyword.
 let s:end_end_regex = '\%(^\|[^.:@$]\)\@<=\<end:\@!\>'
 
-" Expression used for searchpair() call for finding match for 'end' keyword.
-let s:end_skip_expr = s:skip_expr .
-      \ ' || (expand("<cword>") == "do"' .
-      \ ' && getline(".") =~ "^\\s*\\<\\(while\\|until\\|for\\):\\@!\\>")'
+" Expression used for searchpair() call for finding a match for an 'end' keyword.
+function! s:EndSkipExpr()
+  if eval(s:skip_expr)
+    return 1
+  elseif expand('<cword>') == 'do'
+        \ && getline(".") =~ '^\s*\<\(while\|until\|for\):\@!\>'
+    return 1
+  elseif getline('.') =~ s:ruby_endless_def
+    return 1
+  elseif getline('.') =~ '\<def\s\+\k\+[!?]\=([^)]*$'
+    " Then it's a `def method(` with a possible `) =` later
+    call search('\<def\s\+\k\+\zs(', 'W', line('.'))
+    normal! %
+    return getline('.') =~ ')\s*='
+  else
+    return 0
+  endif
+endfunction
+
+let s:end_skip_expr = function('s:EndSkipExpr')
 
 " Regex that defines continuation lines, not including (, {, or [.
 let s:non_bracket_continuation_regex =
@@ -259,7 +283,7 @@ function! GetRubyIndent(...) abort
         \ ]
 
   " Most Significant line based on the previous one -- in case it's a
-  " contination of something above
+  " continuation of something above
   let indent_info.plnum_msl = s:GetMSL(indent_info.plnum)
 
   for callback_name in indent_callback_names
@@ -321,7 +345,11 @@ function! s:ClosingBracketOnEmptyLine(cline_info) abort
 
     if searchpair(escape(bracket_pair[0], '\['), '', bracket_pair[1], 'bW', s:skip_expr) > 0
       if closing_bracket == ')' && col('.') != col('$') - 1
-        let ind = virtcol('.') - 1
+        if g:ruby_indent_hanging_elements
+          let ind = virtcol('.') - 1
+        else
+          let ind = indent(line('.'))
+        end
       elseif g:ruby_indent_block_style == 'do'
         let ind = indent(line('.'))
       else " g:ruby_indent_block_style == 'expression'
@@ -546,7 +574,9 @@ function! s:AfterUnbalancedBracket(pline_info) abort
     let [opening, closing] = s:ExtraBrackets(info.plnum)
 
     if opening.pos != -1
-      if opening.type == '(' && searchpair('(', '', ')', 'bW', s:skip_expr) > 0
+      if !g:ruby_indent_hanging_elements
+        return indent(info.plnum) + info.sw
+      elseif opening.type == '(' && searchpair('(', '', ')', 'bW', s:skip_expr) > 0
         if col('.') + 1 == col('$')
           return indent(info.plnum) + info.sw
         else
@@ -559,6 +589,11 @@ function! s:AfterUnbalancedBracket(pline_info) abort
     elseif closing.pos != -1
       call cursor(info.plnum, closing.pos + 1)
       normal! %
+
+      if strpart(info.pline, closing.pos) =~ '^)\s*='
+        " special case: the closing `) =` of an endless def
+        return indent(s:GetMSL(line('.')))
+      endif
 
       if s:Match(line('.'), s:ruby_indent_keywords)
         return indent('.') + info.sw
@@ -598,7 +633,7 @@ function! s:AfterIndentKeyword(pline_info) abort
   let info = a:pline_info
   let col = s:Match(info.plnum, s:ruby_indent_keywords)
 
-  if col > 0
+  if col > 0 && s:Match(info.plnum, s:ruby_endless_def) <= 0
     call cursor(info.plnum, col)
     let ind = virtcol('.') - 1 + info.sw
     " TODO: make this better (we need to count them) (or, if a searchpair
@@ -631,8 +666,7 @@ function! s:PreviousNotMSL(msl_info) abort
       " TODO (2016-10-07) Wrong/unused? How could it be "1"?
       return indent(info.plnum) - 1
       " If previous line is a continuation return its indent.
-      " TODO: the || s:IsInString() thing worries me a bit.
-    elseif s:Match(info.plnum, s:non_bracket_continuation_regex) || s:IsInString(info.plnum, strlen(line))
+    elseif s:Match(info.plnum, s:non_bracket_continuation_regex)
       return indent(info.plnum)
     endif
   endif
@@ -646,7 +680,7 @@ function! s:IndentingKeywordInMSL(msl_info) abort
   " TODO: this does not take into account contrived things such as
   " module Foo; class Bar; end
   let col = s:Match(info.plnum_msl, s:ruby_indent_keywords)
-  if col > 0
+  if col > 0 && s:Match(info.plnum_msl, s:ruby_endless_def) <= 0
     let ind = indent(info.plnum_msl) + info.sw
     if s:Match(info.plnum_msl, s:end_end_regex)
       let ind = ind - info.sw
