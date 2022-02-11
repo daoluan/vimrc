@@ -180,3 +180,72 @@ let g:tagbar_type_go = {
         \'f:function',
     \]
 \}
+
+let NERDTreeSortOrder = ['\/$','*','[[-timestamp]]']
+
+if has('mac') && ($TERM == 'xterm-256color' || $TERM == 'screen-256color')
+  map <Esc>OP <F1>
+  map <Esc>OQ <F2>
+  map <Esc>OR <F3>
+  map <Esc>OS <F4>
+  map <Esc>[16~ <F5>
+  map <Esc>[17~ <F6>
+  map <Esc>[18~ <F7>
+  map <Esc>[19~ <F8>
+  map <Esc>[20~ <F9>
+  map <Esc>[21~ <F10>
+  map <Esc>[23~ <F11>
+  map <Esc>[24~ <F12>
+endif
+map <F5> :edit +$<cr>
+
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+" => Cscope/Vim key mappings
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+if has("cscope")
+    " use both cscope and ctag for 'ctrl-]', ':ta', and 'vim -t'
+    set cscopetag
+
+    " check cscope for definition of a symbol before checking ctags
+    " set to 1 if you want the reverse check order.
+    set csto=0
+
+    " add any cscope database in current directory
+    if filereadable("cscope.out")
+        cs add cscope.out
+    " else add the database pointed to by environment variable
+    elseif $CSCOPE_DB != ""
+        cs add $CSCOPE_DB
+    endif
+
+    " show msg when any other cscope db added
+    set cscopeverbose
+
+    """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+    "
+    " The following maps all invoke one of the following cscope search types:
+    "
+    "   's'   symbol: find all references to the token under cursor
+    "   'g'   global: find global definition(s) of the token under cursor
+    "   'c'   calls:  find all calls to the function name under cursor
+    "   't'   text:   find all instances of the text under cursor
+    "   'e'   egrep:  egrep search for the word under cursor
+    "   'f'   file:   open the filename under cursor
+    "   'i'   includes: find files that include the filename under cursor
+    "   'd'   called: find functions that function under cursor calls
+    "
+    " Using CTRL-\ as the starting keys for these maps, as it's unlikely
+    " that you need its default mapping (CTRL-\'s default use is as part
+    " of CTRL-\ CTRL-N typemap, which basically just does the same thing
+    " as hitting 'escape').
+    "
+    " If you don't like using CTRL-\, you can change some or all of these
+    " maps to use other keys.  One likely candidate is 'CTRL-_' (which also
+    " maps to CTRL-/, which is easier to type).  By default it is used to
+    " switch between Hebrew and English keyboard mode.
+    "
+    " To do the navigation, hit 'CTRL-\', followed by one of the cscope
+    " search types above (s,g,c,t,e,f,i,d).  The result of your cscope
+    " search will be displayed in the current window.  You can use CTRL-T
+    " to go back to where you were before the search.
+    "
