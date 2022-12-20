@@ -6,6 +6,27 @@ snippet dcl \documentclass{}
 #documentclass with options
 snippet dclo \documentclass[]{}
 	\\documentclass[${1:options}]{${2:class}} ${0}
+
+snippet tmplt "Template"
+	\\documentclass{${1:article}}
+
+	\\usepackage{import}
+	\\usepackage{pdfpages}
+	\\usepackage{transparent}
+	\\usepackage{xcolor}
+	$2
+	
+	\\newcommand{\incfig}[2][1]{%
+		    \def\svgwidth{#1\columnwidth}
+		    \import{./figures/}{#2.pdf_tex}
+	}
+	$3
+	\\pdfsuppresswarningpagegroup=1
+	
+	\\begin{document}
+		    $0
+	\\end{document}
+
 #newcommand
 snippet nc \newcommand
 	\\newcommand{\\${1:cmd}}[${2:opt}]{${3:realcmd}} ${0}
@@ -63,7 +84,7 @@ snippet eq equation environment
 snippet eql Labeled equation environment
 	\\begin{equation}
 		\\label{eq:${2}}
-	${0:${VISUAL}}
+		${0:${VISUAL}}
 	\\end{equation}
 # Equation
 snippet eq* unnumbered equation environment
@@ -405,6 +426,10 @@ snippet ddot ddot
 # Vector
 snippet vec vector
 	\\vec{{$1}} {$0}
+
+# Bar
+snippet bar bar
+	\\bar{{$1}} {$0}
 
 # Cross product
 snippet \x cross product

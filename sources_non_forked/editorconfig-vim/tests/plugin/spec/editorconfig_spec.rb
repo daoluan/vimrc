@@ -18,7 +18,8 @@ def test_editorconfig(vim, file_name, expected_values)
   vim.edit(File.join(BASE_PATH, file_name))
 
   expected_values.each do |key, val|
-    expect(vim.echo("&l:#{key}")).to eq(val)
+    vimval = vim.echo("&l:#{key}")
+    expect(vimval).to eq(val), "key #{key} had value #{vimval}, but I expected #{val}"
   end
 
   vim.command 'bd!'
@@ -159,3 +160,10 @@ if extcore
   )
   test_instance vim
 end
+
+# Test the vim core with latin1 encoding
+(lambda do
+  puts 'Testing with express vim_core mode'
+  vim = create_vim("set encoding=latin1")
+  test_instance vim
+end).call

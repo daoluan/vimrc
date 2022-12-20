@@ -382,12 +382,6 @@ function! s:fix_file_references(filepath, hunk_diff)
   return join(lines, "\n")."\n"
 endfunction
 
-if $VIM_GITGUTTER_TEST
-  function! gitgutter#hunk#fix_file_references(filepath, hunk_diff)
-    return s:fix_file_references(a:filepath, a:hunk_diff)
-  endfunction
-endif
-
 
 function! s:adjust_hunk_summary(hunk_diff) abort
   let line_adjustment = s:line_adjustment_for_current_hunk()
@@ -431,14 +425,7 @@ function! s:open_hunk_preview_window()
 
       let buf = nvim_create_buf(v:false, v:false)
       " Set default width and height for now.
-      let s:winid = nvim_open_win(buf, v:false, {
-            \ 'relative': 'cursor',
-            \ 'row': 1,
-            \ 'col': 0,
-            \ 'width': 42,
-            \ 'height': &previewheight,
-            \ 'style': 'minimal'
-            \ })
+      let s:winid = nvim_open_win(buf, v:false, g:gitgutter_floating_window_options)
       call nvim_buf_set_option(buf, 'filetype',  'diff')
       call nvim_buf_set_option(buf, 'buftype',   'acwrite')
       call nvim_buf_set_option(buf, 'bufhidden', 'delete')
@@ -461,21 +448,20 @@ function! s:open_hunk_preview_window()
     endif
 
     if exists('*popup_create')
-      let opts = {
-            \ 'line': 'cursor+1',
-            \ 'col': 'cursor',
-            \ 'moved': 'any',
-            \ }
       if g:gitgutter_close_preview_on_escape
-        let opts.filter = function('s:close_popup_on_escape')
+        let g:gitgutter_floating_window_options.filter = function('s:close_popup_on_escape')
       endif
 
-      let s:winid = popup_create('', opts)
+      let s:winid = popup_create('', g:gitgutter_floating_window_options)
 
       call setbufvar(winbufnr(s:winid), '&filetype', 'diff')
 
       return
     endif
+  endif
+
+  if exists('&previewpopup')
+    let [previewpopup, &previewpopup] = [&previewpopup, '']
   endif
 
   " Specifying where to open the preview window can lead to the cursor going
@@ -496,6 +482,10 @@ function! s:open_hunk_preview_window()
     " Ensure cursor goes to the expected window.
     nnoremap <buffer> <silent> <Esc> :<C-U>wincmd p<Bar>pclose<CR>
   endif
+
+  if exists('&previewpopup')
+    let &previewpopup=previewpopup
+  endif
 endfunction
 
 
@@ -511,18 +501,15 @@ endfunction
 " Floating window: does not care where cursor is.
 " Preview window: assumes cursor is in preview window.
 function! s:populate_hunk_preview_window(header, body)
-  let body_length = len(a:body)
-
   if g:gitgutter_preview_win_floating
     if exists('*nvim_open_win')
-      let height = min([body_length, &previewheight])
-
       " Assumes cursor is not in previewing window.
       call nvim_buf_set_var(winbufnr(s:winid), 'hunk_header', a:header)
 
       let [_scrolloff, &scrolloff] = [&scrolloff, 0]
 
-      let width = max(map(copy(a:body), 'strdisplaywidth(v:val)'))
+      let [width, height] = s:screen_lines(a:body)
+      let height = min([height, g:gitgutter_floating_window_options.height])
       call nvim_win_set_width(s:winid, width)
       call nvim_win_set_height(s:winid, height)
 
@@ -558,9 +545,7 @@ function! s:populate_hunk_preview_window(header, body)
     call setline(1, a:body)
     setlocal nomodified
 
-    normal! G$
-    let hunk_height = max([body_length, winline()])
-    let height = min([hunk_height, &previewheight])
+    let [_, height] = s:screen_lines(a:body)
     execute 'resize' height
     1
 
@@ -572,6 +557,27 @@ function! s:populate_hunk_preview_window(header, body)
 
     1
   endif
+endfunction
+
+
+" Calculates the number of columns and the number of screen lines the given
+" array of lines will take up, taking account of wrapping.
+function! s:screen_lines(lines)
+  let [_virtualedit, &virtualedit]=[&virtualedit, 'all']
+  let cursor = getcurpos()
+  normal! g$
+  let available_width = virtcol('.')
+  call setpos('.', cursor)
+  let &virtualedit=_virtualedit
+  let width = min([max(map(copy(a:lines), 'strdisplaywidth(v:val)')), available_width])
+
+  if exists('*reduce')
+    let height = reduce(a:lines, { acc, val -> acc + strdisplaywidth(val) / width + (strdisplaywidth(val) % width == 0 ? 0 : 1) }, 0)
+  else
+    let height = eval(join(map(copy(a:lines), 'strdisplaywidth(v:val) / width + (strdisplaywidth(v:val) % width == 0 ? 0 : 1)'), '+'))
+  endif
+
+  return [width, height]
 endfunction
 
 

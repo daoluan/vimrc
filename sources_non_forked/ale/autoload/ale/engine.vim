@@ -203,6 +203,10 @@ function! ale#engine#SetResults(buffer, loclist) abort
         call ale#highlight#SetHighlights(a:buffer, a:loclist)
     endif
 
+    if g:ale_virtualtext_cursor == 2
+        call ale#virtualtext#SetTexts(a:buffer, a:loclist)
+    endif
+
     if l:linting_is_done
         if g:ale_echo_cursor
             " Try and echo the warning now.
@@ -210,7 +214,7 @@ function! ale#engine#SetResults(buffer, loclist) abort
             call ale#cursor#EchoCursorWarning()
         endif
 
-        if g:ale_virtualtext_cursor
+        if g:ale_virtualtext_cursor == 1
             " Try and show the warning now.
             " This will only do something meaningful if we're in normal mode.
             call ale#virtualtext#ShowCursorWarning()
@@ -347,6 +351,12 @@ function! ale#engine#FixLocList(buffer, linter_name, from_other_source, loclist)
 
         if has_key(l:old_item, 'end_lnum')
             let l:item.end_lnum = str2nr(l:old_item.end_lnum)
+
+            " When the error ends after the end of the file, put it at the
+            " end. This is only done for the current buffer.
+            if l:item.bufnr == a:buffer && l:item.end_lnum > l:last_line_number
+                let l:item.end_lnum = l:last_line_number
+            endif
         endif
 
         if has_key(l:old_item, 'sub_type')
