@@ -249,3 +249,7 @@ if has("cscope")
     " search will be displayed in the current window.  You can use CTRL-T
     " to go back to where you were before the search.
     "
+endif
+
+set ff=unix
+
