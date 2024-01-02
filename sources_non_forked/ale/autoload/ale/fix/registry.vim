@@ -7,6 +7,11 @@ let s:default_registry = {
 \       'suggested_filetypes': ['python'],
 \       'description': 'Add blank lines before control statements.',
 \   },
+\   'alejandra': {
+\       'function': 'ale#fixers#alejandra#Fix',
+\       'suggested_filetypes': ['nix'],
+\       'description': 'The Uncompromising Nix Code Formatter',
+\   },
 \   'align_help_tags': {
 \       'function': 'ale#fixers#help#AlignTags',
 \       'suggested_filetypes': ['help'],
@@ -174,7 +179,12 @@ let s:default_registry = {
 \   'yamlfix': {
 \       'function': 'ale#fixers#yamlfix#Fix',
 \       'suggested_filetypes': ['yaml'],
-\       'description': 'Fix yaml files with yamlfix.',
+\       'description': 'Fix YAML files with yamlfix.',
+\   },
+\   'yamlfmt': {
+\       'function': 'ale#fixers#yamlfmt#Fix',
+\       'suggested_filetypes': ['yaml'],
+\       'description': 'Format YAML files with yamlfmt.',
 \   },
 \   'yapf': {
 \       'function': 'ale#fixers#yapf#Fix',
@@ -300,6 +310,11 @@ let s:default_registry = {
 \       'function': 'ale#fixers#gomod#Fix',
 \       'suggested_filetypes': ['gomod'],
 \       'description': 'Fix Go module files with go mod edit -fmt.',
+\   },
+\   'gopls': {
+\       'function': 'ale#fixers#gopls#Fix',
+\       'suggested_filetypes': ['go'],
+\       'description': 'Fix Go files with gopls.',
 \   },
 \   'tslint': {
 \       'function': 'ale#fixers#tslint#Fix',
@@ -551,6 +566,11 @@ let s:default_registry = {
 \       'suggested_filetypes': ['haskell'],
 \       'description': 'A formatter for Haskell source code.',
 \   },
+\   'fourmolu': {
+\       'function': 'ale#fixers#fourmolu#Fix',
+\       'suggested_filetypes': ['haskell'],
+\       'description': 'A formatter for Haskell source code.',
+\   },
 \   'jsonnetfmt': {
 \       'function': 'ale#fixers#jsonnetfmt#Fix',
 \       'suggested_filetypes': ['jsonnet'],
@@ -580,6 +600,31 @@ let s:default_registry = {
 \       'function': 'ale#fixers#raco_fmt#Fix',
 \       'suggested_filetypes': ['racket'],
 \       'description': 'Fix Racket files with raco fmt.',
+\   },
+\   'ruff': {
+\       'function': 'ale#fixers#ruff#Fix',
+\       'suggested_filetypes': ['python'],
+\       'description': 'Fix python files with ruff.',
+\   },
+\   'pycln': {
+\       'function': 'ale#fixers#pycln#Fix',
+\       'suggested_filetypes': ['python'],
+\       'description': 'remove unused python import statements',
+\   },
+\   'rustywind': {
+\       'function': 'ale#fixers#rustywind#Fix',
+\       'suggested_filetypes': ['html'],
+\       'description': 'Sort Tailwind CSS classes',
+\   },
+\   'npm-groovy-lint': {
+\       'function': 'ale#fixers#npmgroovylint#Fix',
+\       'suggested_filetypes': ['groovy'],
+\       'description': 'Fix Groovy files with npm-groovy-fix.',
+\   },
+\   'erb-formatter': {
+\       'function': 'ale#fixers#erbformatter#Fix',
+\       'suggested_filetypes': ['eruby'],
+\       'description': 'Apply erb-formatter -w to eruby/erb files.',
 \   }
 \}
 
