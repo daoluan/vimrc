@@ -92,7 +92,7 @@ nnoremap gd :YcmCompleter GoToDeclaration<CR>
 " autopep8
 let g:autopep8_disable_show_diff=1
 " format on save
-autocmd BufWritePost *.py Autopep8
+" autocmd BufWritePost *.py Autopep8
 
 "打开vim时不再询问是否加载ycm_extra_conf.py配置"
 "let g:ycm_confirm_extra_conf=0
