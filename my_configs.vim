@@ -65,7 +65,7 @@ autocmd FileType c,cpp,java,py,cc,h autocmd BufWritePre <buffer> :call <SID>Stri
 " highlight OverLength ctermbg=red ctermfg=white guibg=#592929
 " match OverLength /\%81v.\+/
 
-autocmd FileType c,cc,cpp  map <buffer> <leader><space> :w<cr>:make<cr>
+" autocmd FileType c,cc,cpp  map <buffer> <leader><space> :w<cr>:make<cr>
 nmap <leader>cn :cn<cr>
 nmap <leader>cp :cp<cr>
 nmap <leader>cw :cw<cr>
@@ -77,9 +77,9 @@ vnoremap // y/<C-R>"<CR>N
 let g:clang_format#code_style = "google"
 let g:clang_format#style_options = {"IndentWidth":2}
 let g:clang_format#auto_format = 1
-autocmd FileType cpp setlocal omnifunc=libclang#Complete
-autocmd FileType c setlocal omnifunc=libclang#Complete
-autocmd FileType cpp ClangFormatAutoEnable
+" autocmd FileType cpp setlocal omnifunc=libclang#Complete
+" autocmd FileType c setlocal omnifunc=libclang#Complete
+" autocmd FileType cpp ClangFormatAutoEnable
 
 let g:ycm_path_to_python_interpreter='/usr/bin/python'
 autocmd FileType python setlocal omnifunc=pythoncomplete#Complete
